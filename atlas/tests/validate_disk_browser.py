@@ -27,6 +27,19 @@ STATE = """() => { const g = TauExplorer.graph, d = document.querySelector('.tau
   return { state: g.diskState, transform: d.getAttribute('transform'), display: d.getAttribute('display'), items: document.querySelectorAll('.tau-disk-item').length,
            sectors: document.querySelectorAll('.tau-label-disksector').length, names: document.querySelectorAll('.tau-label-mathlib').length,
            label: document.querySelector('.tau-core-hit').getAttribute('aria-label'), k: g.transform.k, atOverview: g.atOverview() }; }"""
+# Closer in round the landmark with the most header items about it, the names of the landmarks there, as placed: how many,
+# how many over another landmark's dot, how many over a header item's.
+CROWD = """() => { const g = TauExplorer.graph, items = g.universe.disk.items, k = g.diskTransform().k * 4;
+  const marks = items.filter(i => i.tier === 1), around = new Map(marks.map(l => [l.id, 0]));
+  items.forEach(i => { if (i.tier !== 1) marks.forEach(l => { if (Math.abs(i.x - l.x) < 40 && Math.abs(i.y - l.y) < 40) around.set(l.id, around.get(l.id) + 1); }); });
+  const { x, y } = marks.reduce((a, b) => around.get(b.id) > around.get(a.id) ? b : a);
+  g.travel(d3.zoomIdentity.translate(g.width / 2 - x * k, g.height / 2 - y * k).scale(k), false); }"""
+NAMES = """() => { const g = TauExplorer.graph, t = g.transform, k = t.k;
+  const dots = (g.visible.disk || []).map(i => ({ id: i.id, tier: i.tier, x: i.x * k + t.x, y: i.y * k + t.y, r: i.tier === 1 ? 4 : 3 }));
+  const names = [...document.querySelectorAll('g.tau-label')].map(e => e.__data__).filter(l => l && l.kind === 'mathlib' && l.landmark && !l.chosen);
+  const on = (b, s) => Math.hypot(Math.max(b.x, Math.min(s.x, b.x + b.w)) - s.x, Math.max(b.y, Math.min(s.y, b.y + b.h)) - s.y) < s.r - 1;
+  return { named: names.length, overLandmark: names.filter(l => dots.some(s => s.tier === 1 && s.id !== l.nodeId && on(l.box, s))).length,
+           overHeader: names.filter(l => dots.some(s => s.tier !== 1 && on(l.box, s))).length }; }"""
 FRAMED = """() => { const g = TauExplorer.graph, d = g.universe.disk, reserve = g.width < 600 ? 56 : g.height < 400 ? 24 : 0;
   return 2 * d.outer * g.transform.k >= .7 * Math.min(g.width, g.height - reserve); }"""
 
@@ -163,6 +176,13 @@ with sync_playwright() as p:
             settle(page, 1000)
             quick = page.evaluate(STATE)
             record('A click while the disk is still opening a little ends with it open', quick['state'] == 'open' and quick['transform'] == 'scale(1)')
+            # The user, 2026-10-28: near the rim, where the files' headers' items crowd, landmarks such as the class number
+            # formula went unnamed. A landmark's name lies over their faint dots, never over another landmark's.
+            page.evaluate(CROWD)
+            settle(page, 900)
+            crowd = page.evaluate(NAMES)
+            record('Where header items crowd, the landmarks are named over their dots, never over another landmark\'s',
+                   crowd['named'] >= 3 and crowd['overLandmark'] == 0 and crowd['overHeader'] >= 1)
         context.close()
     context = browser.new_context(viewport={'width': 1440, 'height': 900}, reduced_motion='reduce')
     page = context.new_page()

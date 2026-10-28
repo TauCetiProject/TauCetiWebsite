@@ -1068,9 +1068,11 @@
       if (this.universe && this.universe.core) { const c = this.universe.core; solids.push({ owner: c.id, x: c.x * k + t.x, y: c.y * k + t.y, r: c.r * k * 1.2 + 1 }); }
       // The disk's dots are solid to the names of its items; the disk's own names (Mathlib, its areas) lie over them, as a
       // galaxy's name lies over its dust, and so does the name of the item selected or pointed at, among its neighbours.
-      if (this.diskState === 'open') (this.visible && this.visible.disk || []).forEach(d => solids.push({ owner: d.id, disk: true, x: d.x * k + t.x, y: d.y * k + t.y, r: d.tier === 1 ? 4 : 3 }));
+      // A landmark's name lies over the faint dots of the files' headers' items, never over another landmark's: where
+      // they crowd, near the rim, the landmarks were left unnamed (the user, 2026-10-28: the class number formula).
+      if (this.diskState === 'open') (this.visible && this.visible.disk || []).forEach(d => solids.push({ owner: d.id, disk: true, tier: d.tier, x: d.x * k + t.x, y: d.y * k + t.y, r: d.tier === 1 ? 4 : 3 }));
       const overlays = this.overlayBoxes();
-      const onSolid = (box, own, label) => solids.some(s => s.owner !== own && !(s.disk && (label.kind === 'core' || label.kind === 'disksector' || label.chosen)) && Math.hypot(Math.max(box.x, Math.min(s.x, box.x + box.w)) - s.x, Math.max(box.y, Math.min(s.y, box.y + box.h)) - s.y) < s.r - 1)
+      const onSolid = (box, own, label) => solids.some(s => s.owner !== own && !(s.disk && (label.kind === 'core' || label.kind === 'disksector' || label.chosen || (label.landmark && s.tier !== 1))) && Math.hypot(Math.max(box.x, Math.min(s.x, box.x + box.w)) - s.x, Math.max(box.y, Math.min(s.y, box.y + box.h)) - s.y) < s.r - 1)
         || overlays.some(o => Math.min(box.x + box.w, o.x + o.w) - Math.max(box.x, o.x) > 0 && Math.min(box.y + box.h, o.y + o.h) - Math.max(box.y, o.y) > 0);
       const collides = (box, label) => placed.some(other => Math.min(box.x + box.w, other.x + other.w) - Math.max(box.x, other.x) > -2 && Math.min(box.y + box.h, other.y + other.h) - Math.max(box.y, other.y) > -1)
         || (label.kind === 'galaxy' && onDisc(box, label.nodeId)) || (label.kind === 'field' && onDisc(box, label.members)) || onSolid(box, label.ownerId || label.nodeId, label);

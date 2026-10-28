@@ -64,8 +64,12 @@ jobs:
             git checkout -- data/mathlib-disk.json data/mathlib-pin.json
             echo "::warning::The Mathlib disk was not made again; it stays as it was." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-          # Kept apart, so that a retry below, which starts again from main, keeps the disk made here.
-          mkdir -p "$RUNNER_TEMP/disk" && cp data/mathlib-disk.json data/mathlib-pin.json "$RUNNER_TEMP/disk/"
+          # A disk made here is kept apart, so that a retry below, which starts again from main, keeps it. One this run
+          # did not make is not: on 2026-10-28 a retry put the disk the run had started with back over a newer one on
+          # main (types measured with their structure), and published the older.
+          if ! git diff --quiet -- data/mathlib-disk.json data/mathlib-pin.json; then
+            mkdir -p "$RUNNER_TEMP/disk" && cp data/mathlib-disk.json data/mathlib-pin.json "$RUNNER_TEMP/disk/"
+          fi
       - name: Rebuild, check and publish if it changed
         shell: bash
         env:
@@ -101,7 +105,7 @@ jobs:
             sleep $((attempt * 15))
             git fetch -q origin main && git reset -q --hard origin/main
             python3 scripts/tauceti_progress.py --fetch > /dev/null && python3 scripts/tauceti_prs.py --fetch > /dev/null
-            cp "$RUNNER_TEMP/disk/mathlib-disk.json" "$RUNNER_TEMP/disk/mathlib-pin.json" data/
+            if [ -d "$RUNNER_TEMP/disk" ]; then cp "$RUNNER_TEMP/disk/mathlib-disk.json" "$RUNNER_TEMP/disk/mathlib-pin.json" data/; fi
             if git diff --quiet -- data/tauceti-progress.json data/tauceti-new-roadmaps.json data/tauceti-prs.json data/mathlib-disk.json data/mathlib-pin.json; then echo "Main already has this data."; exit 0; fi
             python3 scripts/build.py > /dev/null && python3 scripts/build.py --tauceti > /dev/null
             publish

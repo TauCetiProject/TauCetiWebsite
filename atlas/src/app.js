@@ -401,7 +401,8 @@ function renderDiskItem(box,r){const disk=DATA.mathlibDisk,sector=disk.sectors.f
  if(r.sig)box.append(el('pre','disk-signature',r.k+' '+r.sig));
  if(r.doc){const text=el('div','md-content landmark-description');text.append(TauMarkdown.render(r.doc,{}));box.append(text);}
  section(box,'What it needs');stats(box,[[r.p.toLocaleString(),'definitions to state and prove it'],[r.q.toLocaleString(),'to state it'],[r.d,'deep']]);
- box.append(el('p','detail-note',"It lies as far from the centre as the first number: the Mathlib definitions, structures, classes and inductive types in everything its statement and proof refer to, the proofs of the lemmas it uses included. Lean's own and the tactics' lemmas do not count. Deep is the longest chain of definitions beneath it."));
+ box.append(el('p','detail-note',"It lies as far from the centre as the first number: the Mathlib definitions, structures, classes and inductive types in everything its statement and proof refer to, the proofs of the lemmas it uses included. Lean's own and the tactics' lemmas do not count. Deep is the longest chain of definitions beneath it."
+  +(r.w?` As a type, it is measured with the structure its own file gives it: the ${r.w} instance${r.w===1?'':'s'} there that give it data, such as its operations. Instances that are theorems about it do not count.`:'')));
  if(r.c&&r.c.length){section(box,"In Mathlib's catalogues");const list=el('ul','region-topics');r.c.forEach(([c,w])=>list.append(el('li','',(CATALOGUES[c]||c)+(w?': '+w:''))));box.append(list);}
  section(box,'In Mathlib');box.append(el('p','detail-note',r.m));
  const row=el('div','button-row'),link=(text,href)=>{const a=el('a','topic-link',text);a.href=href;a.target='_blank';a.rel='noopener noreferrer';return a;};

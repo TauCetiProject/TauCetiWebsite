@@ -100,6 +100,19 @@ class Layout(unittest.TestCase):
                          ("mathlib:Nat.Prime", "Prime number", "math.NT/other", 1, 20, 8, 4))
         self.assertEqual(page["dust"]["areas"], {"math.NT/other": [2, 2, 3], "math.GN": [0, 5, 0]})
 
+    def test_a_type_says_how_many_of_its_files_instances_its_measures_take_in(self):
+        witt = {"name": "WittVector", "title": "Ring of Witt vectors", "kind": "structure", "keyword": "structure",
+                "module": "Mathlib.RingTheory.WittVector.Defs", "path": "Mathlib/RingTheory/WittVector/Defs.lean", "line": 45,
+                "area": "math.NT/other", "tier": 1, "catalogues": [], "needed": 376, "stated": 40, "depth": 9, "importance": 8.5,
+                "signature": "WittVector (p : ℕ) (R : Type u_1) : Type u_1", "summary": "", "structure": 14}
+        prime = {**witt, "name": "Nat.Prime", "kind": "definition", "structure": 0}
+        older = {key: value for key, value in witt.items() if key != "structure"} | {"name": "Older"}
+        disk = {"mathlib": "c0ffee", "items": [witt, prime, older], "areas": {}, "dust": {"bins": 3, "max": 1000, "areas": {}}}
+        items = {item["n"]: item for item in layout(disk, GROUPS)["items"]}
+        self.assertEqual(items["WittVector"]["w"], 14)
+        self.assertNotIn("w", items["Nat.Prime"])
+        self.assertNotIn("w", items["Older"])   # a disk made before types took in their structure
+
 
 if __name__ == "__main__":
     unittest.main()

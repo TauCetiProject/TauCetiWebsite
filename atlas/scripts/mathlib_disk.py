@@ -236,10 +236,11 @@ def _postorder(nodes, children) -> list[int]:
     return order
 
 
-def _counts(order: list[int], children, counted) -> dict[int, int]:
+def _counts(order: list[int], children, counted, extra=None) -> dict[int, int]:
     """For each node, in an order with everything beneath a node before it: how many counted nodes lie beneath it,
     itself excluded. A closure (itself included when counted) is a set while it has at most EXACT members, else a
-    sketch."""
+    sketch. `extra` maps a node to others whose closures its count takes in too (a type's structure, structures());
+    only that node's own count changes, not the closures of what lies above it."""
     small: dict[int, frozenset] = {}
     big: dict[int, np.ndarray] = {}
     count: dict[int, int] = {}
@@ -264,18 +265,73 @@ def _counts(order: list[int], children, counted) -> dict[int, int]:
             index, rank = _slots(np.array([x]))
             regs[index[0]] = max(regs[index[0]], rank[0])
         big[x] = regs
+    for x, more in (extra or {}).items():
+        parts = [p for p in (x, *more) if p in small or p in big]
+        ids = frozenset().union(*(small[p] for p in parts if p in small))
+        sketches = [big[p] for p in parts if p in big]
+        if not sketches:
+            count[x] = len(ids - {x})
+            continue
+        regs = np.max(np.stack(sketches), axis=0)
+        if ids:
+            np.maximum(regs, registers_for(np.fromiter(ids, dtype=np.int64, count=len(ids))), out=regs)
+        count[x] = max(count.get(x, 0), round(estimate(regs)) - (1 if counted(x) else 0))
     return count
+
+
+# A statement's brackets, which a binder's colon and arrows inside them do not end.
+OPENING, CLOSING = "([{⦃⟨", ")]}⦄⟩"
+
+
+def _after_last(text: str, separator: str) -> str:
+    """What follows the last separator outside brackets (all of the text when there is none)."""
+    depth, cut = 0, 0
+    for i, c in enumerate(text):
+        if c in OPENING:
+            depth += 1
+        elif c in CLOSING:
+            depth -= 1
+        elif depth == 0 and text.startswith(separator, i):
+            cut = i + len(separator)
+    return text[cut:]
+
+
+def makes_a_type(signature: str) -> bool:
+    """Whether a statement, as Lean prints it, ends in a universe (`WittVector (p : ℕ) (R : Type u_1) : Type u_1`,
+    `TruncatedWittVector : ℕ → ℕ → Type u_2 → Type u_2`): not a predicate's Prop, nor a function's values."""
+    return re.match(r"(Type|Sort)\b", _after_last(_after_last(" ".join(signature.split()), " : "), " → ")) is not None
+
+
+def structures(ds, excluded) -> dict[int, list[int]]:
+    """Each type's structure, as its own module gives it: the instances declared there whose statements mention it and
+    that carry data (operations, a ring, an order, a topology, a category). Mathlib often defines a type bare and gives
+    it its structure so: `WittVector p R` is a sequence in R, and its ring operations, which need `Fact p.Prime` and
+    `CommRing R`, are instances beside it. A Prop-valued instance is a theorem about the type (`IsDomain (Polynomial
+    R)`) and is left out. A type is a structure, definition or inductive type whose statement ends in a universe; a
+    class is a structure itself and keeps its own measures."""
+    signature, mentions = ds.facet("signature"), ds.reverse("statement")
+    found: dict[int, list[int]] = {}
+    for d in ds.decls:
+        if excluded[d.id] or d.kind not in ("structure", "definition", "inductive"):
+            continue
+        own = [i for i in mentions.get(d.id, ()) if ds.decls[i].kind == "instance" and not ds.decls[i].is_prop
+               and ds.decls[i].module == d.module and not excluded[i]]
+        if own and makes_a_type((signature.get(d.name) or [{}])[0].get("text") or ""):
+            found[d.id] = own
+    return found
 
 
 @dataclass
 class Measures:
     """Per declaration id: the Mathlib definitions needed to state and prove it (`needed`), to state it (`stated`),
     and the longest chain of definitions beneath it, itself included when it is one (`depth`). A definition is a
-    concept of evidence-core's graphs: a definition, structure, class or inductive type, not a proof or instance."""
+    concept of evidence-core's graphs: a definition, structure, class or inductive type, not a proof or instance. A
+    type's measures take in the structure its file gives it, the `structure` instances (structures())."""
     needed: np.ndarray
     stated: np.ndarray
     depth: np.ndarray
     excluded: np.ndarray
+    structure: np.ndarray
 
 
 def measures(ds, g, rules) -> Measures:
@@ -300,14 +356,19 @@ def measures(ds, g, rules) -> Measures:
     def uses(x: int) -> list[int]:
         return [t for t in term.get(x, ()) if t != x and not excluded[t]]
 
-    needed = _counts(_postorder(nodes, uses), uses, lambda x: bool(concept[x]))
+    structure = structures(ds, excluded)
+    needed = _counts(_postorder(nodes, uses), uses, lambda x: bool(concept[x]), structure)
     order = _postorder(nodes, below)
-    stated = _counts(order, below, lambda x: bool(concept[x]))
+    stated = _counts(order, below, lambda x: bool(concept[x]), structure)
     depth = np.zeros(n, dtype=np.int32)
     for x in order:
         depth[x] = (1 if concept[x] else 0) + max((int(depth[c]) for c in below(x)), default=0)
+    for x, own in structure.items():
+        beneath = max((int(depth[c]) for i in own for c in below(i) if c != x), default=0)
+        depth[x] = max(int(depth[x]), (1 if concept[x] else 0) + beneath)
     as_array = lambda values: np.array([values.get(i, 0) for i in range(n)], dtype=np.int32)
-    return Measures(needed=as_array(needed), stated=as_array(stated), depth=depth, excluded=excluded)
+    return Measures(needed=as_array(needed), stated=as_array(stated), depth=depth, excluded=excluded,
+                    structure=as_array({x: len(own) for x, own in structure.items()}))
 
 
 # --- the data file -------------------------------------------------------------------------------------------------
@@ -316,7 +377,10 @@ BINS = 40
 MEASURE = ("needed: the distinct Mathlib definitions, structures, classes and inductive types in the closure of everything a "
            "declaration's statement and proof refer to, the proofs of the lemmas it uses included, itself excluded; stated: "
            "the same over its statement alone (instances gone through by their type); depth: the longest chain of definitions "
-           "beneath it, itself included when it is one. Lean's own declarations and the tactics' lemmas are not counted.")
+           "beneath it, itself included when it is one. Lean's own declarations and the tactics' lemmas are not counted. "
+           "A type (a structure, definition or inductive type, not a class) is measured with the structure its own file "
+           "gives it: the instances declared there that mention it and carry data, such as its operations; Prop-valued "
+           "ones are theorems about it and do not count.")
 
 
 def clip(text: str, limit: int = SUMMARY) -> str:
@@ -375,7 +439,7 @@ def disk_data(ds, g, m: Measures, source: Path, rules) -> dict:
                       "module": d.module, "path": where.get("path"), "line": (where.get("start") or [None])[0],
                       "area": area_of(d.module, rules), "tier": choice["tier"], "catalogues": choice["catalogues"],
                       "needed": int(m.needed[d.id]), "stated": int(m.stated[d.id]), "depth": int(m.depth[d.id]),
-                      "importance": round(float(g.importance[d.id]), 2),
+                      "structure": int(m.structure[d.id]), "importance": round(float(g.importance[d.id]), 2),
                       "signature": plain_signature(((signature.get(name) or [{}])[0].get("text") or "")),
                       "summary": clip(next((w for w in words if w), ""))})
     items.sort(key=lambda item: (item["tier"], -item["importance"], item["name"]))

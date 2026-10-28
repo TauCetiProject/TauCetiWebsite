@@ -122,5 +122,6 @@ def layout(disk: dict, groups: list[dict]) -> dict:
             "items": [{"id": "mathlib:" + item["name"], "n": item["name"], "t": item["title"], "k": item.get("keyword") or item["kind"],
                        "s": item["sector"], "l": item["tier"], "r": item["r"], "a": item["a"], "p": item["needed"], "q": item["stated"],
                        "d": item["depth"], "i": item["importance"], "sig": item["signature"], "doc": item["summary"], "m": item["module"],
-                       "f": item["path"], "ln": item["line"], "c": item["catalogues"]} for item in items],
+                       "f": item["path"], "ln": item["line"], "c": item["catalogues"],
+                       **({"w": item["structure"]} if item.get("structure") else {})} for item in items],
             "dust": {"bins": bins, "areas": dust}}

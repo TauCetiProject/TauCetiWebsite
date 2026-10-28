@@ -151,6 +151,17 @@ with sync_playwright() as p:
             page.evaluate("() => TauExplorer.graph.zoomToDisk(false)")
             settle(page)
             record('The panel opening beside the chart keeps the reader\'s place in the disk', abs(after[0] - before[0]) < 2 and abs(after[1] - before[1]) < 2)
+            # The user, 2026-10-28: the Ring of Witt vectors needed no definitions, Mathlib's WittVector being a bare
+            # sequence whose ring operations are instances beside it. A type is measured with them, and its panel says so.
+            notes = []
+            for pick in ("items.filter(i => i.l === 1 && i.w).sort((a, b) => b.w - a.w)[0]", "items.find(i => i.l === 1 && !i.w)"):
+                chosen = page.evaluate("""() => { const g = TauExplorer.graph, items = TauExplorer.data.mathlibDisk.items, item = %s;
+                  if (item) g.options.onSelect(g.universe.byId.get(item.id)); return item ? item.w || 0 : null; }""" % pick)
+                settle(page, 500)
+                notes.append((chosen, page.evaluate("() => [...document.querySelectorAll('#inspector-content p.detail-note')].map(p => p.textContent).join(' ')")))
+            (count, typed), (_, other) = notes
+            record('A type is measured with the structure its own file gives it, and its panel says so', bool(count)
+                   and 'the structure its own file gives it' in typed and f'{count} instances' in typed and 'the structure its own file gives it' not in other)
             sun = page.evaluate(SUN)
             page.mouse.click(sun[0], sun[1])
         else:

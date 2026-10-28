@@ -187,6 +187,81 @@ class Measures(unittest.TestCase):
 
 
 @unittest.skipUnless(md, "needs requirements-data.txt")
+class MakesAType(unittest.TestCase):
+    """Which declarations are types: their statements, as Lean prints them, end in a universe."""
+
+    def test_a_type_former_ends_in_a_universe(self):
+        for text in ("WittVector.{u_1} (p : ℕ) (R : Type u_1) : Type u_1", "TruncatedWittVector : ℕ → (n : ℕ) → (R : Type u_2) → Type u_2",
+                     "Matrix (m : Type u) (n : Type u') (α : Type v) : Type (max u u' v)",
+                     "Equiv (α : Sort u_1) (β : Sort u_2) : Sort (max (max 1 u_1) u_2)",
+                     "Bundle.TotalSpace {B : Type u_1} (F : Type u_4) (E : B → Type u_5) :\n  Type (max u_1 u_5)", "U : Type"):
+            self.assertTrue(md.makes_a_type(text), text)
+
+    def test_a_predicate_or_a_function_does_not(self):
+        for text in ("Int.ModEq (n a b : ℤ) : Prop", "Nat.factorial : ℕ → ℕ", "Pell.pell {a : ℕ} (a1 : 1 < a) : ℕ → ℕ × ℕ",
+                     "IsDedekindDomain.{u_2} (A : Type u_2) [CommRing A] : Prop", "Set.univ {α : Type u} : Set α", ""):
+            self.assertFalse(md.makes_a_type(text), text)
+
+
+@unittest.skipUnless(md, "needs requirements-data.txt")
+class TypesWithTheirStructure(unittest.TestCase):
+    """Mathlib often defines a type bare and gives it its structure by instances in the same file: `WittVector p R` is a
+    sequence in R, and its ring operations, which need `Fact p.Prime` and `CommRing R`, are instances beside it (the
+    user, 2026-10-28: the Ring of Witt vectors needed no definitions). A type is measured with the instances its module
+    declares on it that carry data; a Prop-valued one is a theorem about it (`IsDomain (Polynomial R)`), and one in
+    another file is not its file's. Nothing else's measures change."""
+
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        from evidence_core.dataset import Dataset
+        from evidence_core.graphs import Graphs
+        decls = [("W", "Mathlib.Foo.W", "structure", False, "mathlib"),                   # 0, a sequence in R
+                 ("Ring", "Mathlib.Foo.Ring", "class", False, "mathlib"),                 # 1
+                 ("Poly", "Mathlib.Foo.Poly", "definition", False, "mathlib"),            # 2, built on Ring
+                 ("W.instAdd", "Mathlib.Foo.W", "instance", False, "mathlib"),            # 3, W's addition, for a Ring, made of Poly
+                 ("W.instIsDomain", "Mathlib.Foo.W", "instance", True, "mathlib"),        # 4, a theorem about W, using Deep
+                 ("Deep", "Mathlib.Foo.Deep", "definition", False, "mathlib"),            # 5
+                 ("W.instElsewhere", "Mathlib.Foo.Other", "instance", False, "mathlib"),  # 6, another file's, using Far
+                 ("Far", "Mathlib.Foo.Far", "definition", False, "mathlib"),              # 7
+                 ("U", "Mathlib.Foo.U", "structure", False, "mathlib"),                   # 8, built on W
+                 ("Cls", "Mathlib.Foo.Cls", "class", False, "mathlib"),                   # 9, a class: a structure itself
+                 ("Cls.inst", "Mathlib.Foo.Cls", "instance", False, "mathlib"),           # 10, an instance of it, using Far
+                 ("Pred", "Mathlib.Foo.Pred", "definition", False, "mathlib"),            # 11, a predicate, not a type
+                 ("Pred.decide", "Mathlib.Foo.Pred", "instance", False, "mathlib"),       # 12, deciding it, using Far
+                 ("Nat", "Init.Prelude", "inductive", False, "lean4")]                   # 13, Lean's own
+        statement = [(0, 13), (2, 1), (3, 0), (3, 1), (4, 0), (6, 0), (8, 0), (10, 9), (11, 13), (12, 11)]
+        term = statement + [(3, 2), (4, 5), (6, 7), (10, 7), (12, 7)]
+        signatures = [{"decl": name, "text": text} for name, text in (
+            ("W", "W.{u} (p : ℕ) (R : Type u) : Type u"), ("U", "U : Type"), ("Cls", "Cls.{u} (α : Type u) : Type u"),
+            ("Pred", "Pred (n : ℕ) : Prop"), ("Poly", "Poly : ℕ → ℕ"), ("Deep", "Deep : ℕ"), ("Far", "Far : ℕ"))]
+        root = write_dataset(Path(tempfile.mkdtemp()) / "ds", decls, {"meaning": statement, "statement": statement, "term": term},
+                             {"signature": signatures})
+        ds = Dataset.load(root)
+        cls.m = md.measures(ds, Graphs(ds), [("Mathlib", "math.LO")])
+        cls.id = {d.name: d.id for d in ds.decls}
+
+    def at(self, measure, name):
+        return int(getattr(self.m, measure)[self.id[name]])
+
+    def test_a_type_needs_what_its_files_instances_on_it_need(self):
+        self.assertEqual(self.at("needed", "W"), 2)       # Ring and Poly, through its addition
+
+    def test_only_its_own_files_instances_that_carry_data_count(self):
+        self.assertEqual(self.at("structure", "W"), 1)    # its addition: not the theorem about it, nor another file's
+        self.assertEqual(self.at("needed", "W"), 2)       # so not Deep, nor Far
+
+    def test_its_statement_and_depth_take_in_their_statements(self):
+        self.assertEqual(self.at("stated", "W"), 1)       # Ring, which its addition's statement is about
+        self.assertEqual(self.at("depth", "W"), 2)        # W over Ring
+
+    def test_nothing_else_changes(self):
+        self.assertEqual(self.at("needed", "U"), 1)       # W, without W's instances
+        self.assertEqual((self.at("needed", "Cls"), self.at("structure", "Cls")), (0, 0))    # a class keeps its measure
+        self.assertEqual((self.at("needed", "Pred"), self.at("structure", "Pred")), (0, 0))  # a predicate is not a type
+
+
+@unittest.skipUnless(md, "needs requirements-data.txt")
 class DiskData(unittest.TestCase):
     """data/mathlib-disk.json: the items with their words, measures and areas, and the dust."""
 
@@ -233,6 +308,7 @@ class DiskData(unittest.TestCase):
         self.assertEqual((dedekind["area"], self.items["CompleteSpace"]["area"], self.items["irrational_sqrt_two"]["area"]),
                          ("math.AC", "math.GN", "math.NT/analytic"))
         self.assertEqual(dedekind["needed"], 1)
+        self.assertEqual(dedekind["structure"], 0)   # a class, measured as it is
 
     def test_a_summary_is_at_most_four_hundred_characters(self):
         summary = self.items["CompleteSpace"]["summary"]

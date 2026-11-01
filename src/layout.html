@@ -7,21 +7,22 @@
   <title>{{title}}</title>
   <meta name="description" content="{{description}}">
 {{theme_init}}
-  <link rel="icon" href="static/img/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="static/img/favicon-32x32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="static/img/apple-touch-icon.png">
+  <link rel="icon" href="{{root}}static/img/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{root}}static/img/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{root}}static/img/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="static/sitebar.css?v={{version}}">
-  <link rel="stylesheet" href="static/style.css?v={{version}}">
-  <script src="static/js/sitebar.js?v={{version}}" defer></script>
-  <script src="static/js/common.js?v={{version}}" defer></script>
+  <link rel="stylesheet" href="{{root}}static/sitebar.css?v={{version}}">
+  <link rel="stylesheet" href="{{root}}static/style.css?v={{version}}">
+  <script src="{{root}}static/js/sitebar.js?v={{version}}" defer></script>
+  <script src="{{root}}static/js/common.js?v={{version}}" defer></script>
 {{scripts}}
 </head>
 <body data-page="{{page}}">
+  <a class="skip-link" href="#main">Skip to content</a>
 {{header}}
-  <main>
+  <main id="main" tabindex="-1">
 {{content}}
   </main>
   <footer class="site-footer">
@@ -33,20 +34,23 @@
       <div>
         <h4>Explore</h4>
         <ul>
-          <li><a href="structure.html">Roadmaps</a></li>
-          <li><a href="atlas/">Tau Ceti Atlas</a></li>
-          <li><a href="review/">Tau Ceti Review</a></li>
+          <li><a href="{{root}}structure.html">Roadmaps</a></li>
+          <li><a href="{{root}}atlas/">Roadmap atlas</a></li>
+          <li><a href="{{root}}review/">Tau Ceti Review</a></li>
           <li><a href="https://taucetiproject.org/docs/">API documentation</a></li>
         </ul>
       </div>
       <div>
         <h4>The project</h4>
         <ul>
-          <li><a href="people.html">People</a></li>
-          <li><a href="acknowledgments.html">Acknowledgments</a></li>
-          <li><a href="health.html">Health</a></li>
-          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="{{root}}blog/">News</a></li>
+          <li><a href="{{root}}people.html">People</a></li>
+          <li><a href="{{root}}acknowledgments.html">Acknowledgments</a></li>
+          <li><a href="{{root}}health.html">Health</a></li>
+          <li><a href="{{root}}faq.html">FAQ</a></li>
           <li><a href="https://leanprover.zulipchat.com/">Lean Zulip</a></li>
+          <li><a href="{{root}}faq.html#cite">How to cite</a></li>
+          <li><a href="https://github.com/roed-math/tauceti-website/issues/new">Report a problem with this site</a></li>
         </ul>
       </div>
       <div>

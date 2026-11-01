@@ -4,8 +4,8 @@
 Writes into data/ (or --out):
 
   library-loc.json   lines of Lean under TauCeti/ by day, from the git history of main
-  loc-by-topic.json  net lines per roadmap and per arXiv category, from merged pull requests
-  roadmap-prs.json   per roadmap label: merged PRs, net lines and the twelve latest merges
+  loc-by-topic.json  net lines of Lean per roadmap and per arXiv category, from merged pull requests
+  roadmap-prs.json   per roadmap label: merged PRs, net lines of Lean and the twelve latest merges
   roadmap-examples.json  one headline declaration per completed roadmap (examples/roadmaps.json),
                      its statement as the API docs show it
   ci-current.json    the CI fleet's running and queued jobs, copied from the live manifest
@@ -141,12 +141,44 @@ def last_full_day() -> dt.date:
     return dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)
 
 
-def loc_by_topic(prs: list[dict], progress: dict, pr_stats: dict) -> dict:
-    """Net lines (additions minus deletions) per roadmap label, by merge day.
+PR_SUFFIX = re.compile(r"\(#(\d+)\)$")
+
+
+def lean_lines_by_pr(repo: Path) -> dict[int, int]:
+    """Net lines of Lean under TauCeti/ that each pull request's squash commit on main added.
+
+    Every PR lands as one first-parent commit whose subject ends "(#N)". A merged PR with no such
+    commit touched no Lean under TauCeti/, and counts 0.
+    """
+    out = subprocess.run(
+        ["git", "-C", str(repo), "log", "--first-parent", "--diff-merges=first-parent",
+         "--numstat", "--format=@%s", "HEAD", "--", "TauCeti/*.lean", "TauCeti.lean"],
+        capture_output=True, text=True, check=True).stdout
+    net: dict[int, int] = defaultdict(int)
+    pr = None
+    for line in out.splitlines():
+        if line.startswith("@"):
+            m = PR_SUFFIX.search(line)
+            pr = int(m.group(1)) if m else None
+        elif line.strip() and pr is not None:
+            a, d, _ = line.split("\t", 2)
+            if a != "-":
+                net[pr] += int(a) - int(d)
+    return dict(net)
+
+
+def pr_net(pr: dict, lean: dict[int, int] | None) -> int:
+    """A PR's net lines of Lean, or of every file it changed when no TauCeti clone was given."""
+    return lean.get(pr["number"], 0) if lean is not None else pr["additions"] - pr["deletions"]
+
+
+def loc_by_topic(prs: list[dict], progress: dict, pr_stats: dict, lean: dict[int, int] | None) -> dict:
+    """Net lines of Lean per roadmap label, by merge day.
 
     Same attribution as TauCeti's per-roadmap chart: a merged PR counts toward the one
-    roadmap/<Area> label it carries; none or several leaves it unattributed. Sums diffs, so
-    a line rewritten later counts under both PRs: this measures work landed, not a snapshot.
+    roadmap/<Area> label it carries; none or several leaves it unattributed. A line replaced by a
+    later PR nets to zero there, so a roadmap's total is what its PRs added and kept, not the
+    effort spent on it nor the current size of its files.
     """
     code_to_name = {}
     for row in progress.get("rows", []):
@@ -169,7 +201,7 @@ def loc_by_topic(prs: list[dict], progress: dict, pr_stats: dict) -> dict:
         if day > end.isoformat():
             continue
         roadmap = [l for l in pr["labels"] if l.startswith("roadmap/")]
-        net = pr["additions"] - pr["deletions"]
+        net = pr_net(pr, lean)
         # `roadmap/none` and `roadmap/Unknown` are sentinels, not roadmaps: count them with the
         # unlabelled PRs, as taucetiproject.org's progress.json does.
         if len(roadmap) != 1 or not label_to_code.get(roadmap[0]):
@@ -202,13 +234,14 @@ def loc_by_topic(prs: list[dict], progress: dict, pr_stats: dict) -> dict:
     roadmaps.sort(key=lambda r: -r["net_lines"])
     return {"generated_at": now_iso(), "last_full_day": end.isoformat(), "dates": dates,
             "topics": topics, "roadmaps": roadmaps, "unattributed": unattributed,
-            "merged_prs": sum(per_label_prs.values()) + unattributed["prs"]}
+            "merged_prs": sum(per_label_prs.values()) + unattributed["prs"],
+            "lines": "lean" if lean is not None else "all files"}
 
 
 ROADMAP_SENTINELS = {"roadmap/none", "roadmap/Unknown"}
 
 
-def roadmap_prs(prs: list[dict], recent: int = 12) -> dict:
+def roadmap_prs(prs: list[dict], lean: dict[int, int] | None, recent: int = 12) -> dict:
     """Per roadmap label: merged PRs, their net lines, and the most recent merges, for the roadmap pages.
 
     A PR counts only when it carries exactly one roadmap/ label and that label is not a sentinel.
@@ -227,9 +260,9 @@ def roadmap_prs(prs: list[dict], recent: int = 12) -> dict:
         items.sort(key=lambda x: x[0], reverse=True)
         out[label] = {
             "merged": len(items),
-            "net_lines": sum(pr["additions"] - pr["deletions"] for _, pr in items),
+            "net_lines": sum(pr_net(pr, lean) for _, pr in items),
             "recent": [{"number": pr["number"], "title": pr["title"].removeprefix(BORS_PREFIX),
-                        "merged": when[:10], "net": pr["additions"] - pr["deletions"]}
+                        "merged": when[:10], "net": pr_net(pr, lean)}
                        for when, pr in items[:recent]],
         }
     return {"generated_at": now_iso(), "roadmaps": out}
@@ -417,8 +450,9 @@ def main() -> int:
             progress = fetch_json(f"{SITE}/static/progress.json")
             pr_stats = fetch_json(f"{SITE}/static/pr-stats.json")
             prs = walk_prs(args.cache / "prs.json")
-            write(args.out, "loc-by-topic.json", loc_by_topic(prs, progress, pr_stats))
-            write(args.out, "roadmap-prs.json", roadmap_prs(prs))
+            lean = lean_lines_by_pr(args.tauceti_repo) if args.tauceti_repo else None
+            write(args.out, "loc-by-topic.json", loc_by_topic(prs, progress, pr_stats, lean))
+            write(args.out, "roadmap-prs.json", roadmap_prs(prs, lean))
         step("loc-by-topic", topics)
     if failures:
         log(f"failed: {', '.join(failures)}")

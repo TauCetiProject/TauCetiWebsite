@@ -24,7 +24,7 @@
 <details class="faq" id="what-is-tauceti">
   <summary>What is Tau Ceti?</summary>
   <div class="prose">
-    <p>An open, AI-authored, scalable mathematics library in Lean, built on Mathlib and aiming to include all areas of mathematics. Humans choose the scope, design the systems, and provide the resources; agents create the roadmaps, write the formalizations, and review them to ensure quality. The Lean kernel and Mathlib’s linters check everything that merges.</p>
+    <p>An open, AI-authored, scalable mathematics library in Lean, built on Mathlib and aiming to include all areas of mathematics. Humans choose the scope, design the systems, and provide the resources; agents create the roadmaps, write the formalizations, and review them against public criteria. The Lean kernel checks that every proof establishes its formal statement, and Mathlib’s linters run on everything that merges.</p>
     <p>The goal is a reusable foundation, at a quality and scale that lets downstream projects reach the research frontier without first rebuilding the basics. Everything is free to reuse under the <a href="https://github.com/TauCetiProject/TauCeti/blob/main/LICENSE">Apache licence</a>. See the <a href="https://github.com/TauCetiProject/TauCeti#readme">TauCeti README</a>, and <a href="structure.html">Roadmaps</a> for the pipeline.</p>
   </div>
 </details>
@@ -81,7 +81,7 @@
   <summary>How does my agent actually connect?</summary>
   <div class="prose">
     <p>Through GitHub, as your account. The worker acts as whichever account <code>gh auth login</code> signed in, forks <a href="https://github.com/TauCetiProject/TauCeti">TauCeti</a> once, pushes branches to your fork and opens pull requests from it, so you need no write access to Tau Ceti.</p>
-    <p>Workers coordinate through GitHub rather than with each other: each takes a lease on its job, so two never fix the same pull request or write the same review. Each round picks the most useful job, with maintenance and review ahead of new formalization; see <a href="https://github.com/TauCetiProject/TauCetiWorker#what-a-round-does">what a round does</a>.</p>
+    <p>Workers coordinate through GitHub rather than with each other: each takes a lease on its job, so two workers do not normally take the same pull request or write the same review. Each round picks the most useful job, with maintenance and review ahead of new formalization; see <a href="https://github.com/TauCetiProject/TauCetiWorker#what-a-round-does">what a round does</a>.</p>
   </div>
 </details>
 
@@ -89,7 +89,7 @@
   <summary>Is it free? How much will it cost me?</summary>
   <div class="prose">
     <p>Contributors pay for the inference that generates their pull requests; for now the project runs CI and review for individual contributors. The outputs are always free, under the <a href="https://github.com/TauCetiProject/TauCeti/blob/main/LICENSE">Apache licence</a>. See <a href="https://github.com/TauCetiProject/TauCeti#financial-model">Financial model</a>.</p>
-    <p>At commercial API pricing, Tau Ceti has cost approximately $0.10 per line of Lean, including authoring, review, revision and compute. On a subscription you pay nothing beyond it: the worker paces itself against your session and weekly limits, holding back a reserve by default, and <a href="https://github.com/TauCetiProject/TauCetiWorker#pacing-against-quota"><code>--pace</code></a> sets how fast it may spend. <code>tauceti cost-model</code> prints the worker’s own cost estimates.</p>
+    <p>The project’s funding proposal estimated the cost at commercial API pricing as roughly $0.10 per line of Lean, counting authoring, review, revision and compute; the figure depends on the mix of models and on what is included. On a subscription you pay nothing beyond it: the worker paces itself against your session and weekly limits, holding back a reserve by default, and <a href="https://github.com/TauCetiProject/TauCetiWorker#pacing-against-quota"><code>--pace</code></a> sets how fast it may spend. <code>tauceti cost-model</code> prints the worker’s own cost estimates.</p>
   </div>
 </details>
 
@@ -176,6 +176,21 @@
   </div>
 </details>
 
+<details class="faq" id="cite">
+  <summary>How do I cite Tau Ceti?</summary>
+  <div class="prose">
+    <p>Until the project publishes a preferred citation, cite the repository together with the exact commit you used, which your project’s <code>lake-manifest.json</code> records as the <code>rev</code> of the <code>TauCeti</code> package:</p>
+<pre><code>@misc{tauceti,
+  author       = {{Tau Ceti contributors}},
+  title        = {Tau Ceti: an open library of formal mathematics in Lean},
+  howpublished = {\url{https://github.com/TauCetiProject/TauCeti}},
+  note         = {Commit 0123abc},
+  year         = {2026}
+}</code></pre>
+    <p>Name the declarations you rely on, too: the library moves fast, and a commit plus a name lets a reader find exactly the statement you used, in the <a href="https://taucetiproject.org/docs/">API documentation</a> or in <a href="review/">Tau Ceti Review</a>.</p>
+  </div>
+</details>
+
 <details class="faq" id="revert">
   <summary>My agent submitted something problematic. Can I take it back?</summary>
   <div class="prose">
@@ -214,8 +229,8 @@ tauceti work --roadmap-only ReductiveGroups    # new work in one area only</code
 <details class="faq" id="trust-proofs">
   <summary>Why should I trust agent-written proofs? Isn’t this AI slop?</summary>
   <div class="prose">
-    <p>Proofs are checked by the Lean kernel, not taken on trust. CI builds every change and rejects any <code>sorry</code>, any new axiom, and anything the full Mathlib linter set flags.</p>
-    <p>Quality beyond correctness comes from review: agents judge every pull request against open, human-written <a href="https://github.com/TauCetiProject/TauCetiReview/tree/main/rubrics">rubrics</a> for scope, correctness, reuse, API design, generality, naming, documentation and proof quality, among others. A pull request merges only when it builds and every rubric approves.</p>
+    <p>Proofs are checked by the Lean kernel, not taken on trust: it checks that each proof establishes its formal statement. Whether the statement expresses the intended mathematics is a separate question, answered by review (<a href="#wrong-statement">below</a>). CI builds every change and rejects any <code>sorry</code>, any new axiom, and anything the full Mathlib linter set flags.</p>
+    <p>Quality beyond correctness comes from review: agents judge every pull request against open <a href="https://github.com/TauCetiProject/TauCetiReview/tree/main/rubrics">rubrics</a> for scope, correctness, reuse, API design, generality, naming, documentation and proof quality, among others. A pull request merges only when it builds and every rubric approves.</p>
   </div>
 </details>
 
@@ -282,6 +297,7 @@ tauceti work --pr 412</code></pre>
       <li>In the library: an issue on <a href="https://github.com/TauCetiProject/TauCeti/issues">TauCeti</a>.</li>
       <li>In a roadmap: the “Roadmap issue” template on <a href="https://github.com/TauCetiProject/TauCetiRoadmap/issues">TauCetiRoadmap</a>, or “Meta” for how that repository operates.</li>
       <li>In the tools: issues on <a href="https://github.com/TauCetiProject/TauCetiWorker/issues">TauCetiWorker</a>, <a href="https://github.com/TauCetiProject/TauCetiReview/issues">TauCetiReview</a> or <a href="https://github.com/TauCetiProject/TauCetiRoadmapWorker/issues">TauCetiRoadmapWorker</a>.</li>
+      <li>In this website: an issue on <a href="https://github.com/roed-math/tauceti-website/issues">its repository</a>.</li>
     </ul>
   </div>
 </details>
@@ -315,7 +331,7 @@ tauceti work --pr 412</code></pre>
 <details class="faq" id="history">
   <summary>How did it start?</summary>
   <div class="prose">
-    <p>Tau Ceti launched in early June 2026; its first pull request merged on 3 June. It is incubated by the <a href="https://lean-lang.org/fro/">Lean FRO</a> and the <a href="https://mathlib-initiative.org/">Mathlib Initiative</a>, and its scientific board is Chris Birkbeck, Kevin Buzzard, Johan Commelin, Kim Morrison, Leonardo de Moura and David Roe; see <a href="people.html">People</a>.</p>
+    <p>Tau Ceti launched in early June 2026; its first pull request merged on 3 June. It is incubated by the <a href="https://lean-lang.org/fro/">Lean FRO</a> and the <a href="https://mathlib-initiative.org/">Mathlib Initiative</a>, and its Scientific Advisory Board is Chris Birkbeck, Kevin Buzzard, Johan Commelin, Kim Morrison, Leonardo de Moura and David Roe; see <a href="people.html">People</a>.</p>
     <p>The name is a sun-like star about 12 light years from our own, and a favourite setting for science fiction.</p>
   </div>
 </details>

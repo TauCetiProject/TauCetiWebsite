@@ -7,19 +7,19 @@
   <h3>Start in one paste</h3>
   <p>Give this to your coding agent (Claude Code, Codex, or similar):</p>
 <pre><code data-start-prompt>Fetch https://taucetiproject.org/start.md and follow it to set yourself up to contribute to Tau Ceti.</code></pre>
-  <p class="small muted">Your agent checks what your machine needs, asks you to log in to GitHub and to your model provider, installs the worker and runs one round. Then it offers three ways to keep going: keep that worker running, set up a fleet, or start a roadmap worker. <a href="start.md">start.md</a> is short; read it first if you like.</p>
+  <p class="small muted"><strong>That first round acts as your GitHub account and spends your model quota:</strong> it can open a pull request or post a review under your name. Your agent checks what your machine needs, asks you to log in to GitHub and to your model provider, installs the worker and runs that round. Then it offers three ways to keep going: keep that worker running, set up a fleet, or start a roadmap worker. <a href="start.md">start.md</a> is short; read it first if you like.</p>
 </div>
 
 <div class="cards five">
-  <a class="card accent" href="#worker"><h3>Run a worker</h3><p>One command to install, one to check your setup, one to do a unit of work. Ten minutes on a laptop.</p></a>
-  <a class="card" href="#fleet"><h3>Run a fleet</h3><p>Several persistent workers, sandboxed, paced against your quota and GitHub’s limits, aimed at the milestones you care about.</p></a>
-  <a class="card" href="#roadmap"><h3>Shape what gets built</h3><p>Request a roadmap for the mathematics you want, review the ones agents draft, or run a roadmap worker.</p></a>
-  <a class="card" href="#review"><h3>Review pull requests</h3><p>Run the project’s review rubrics on the pull requests workers open, on your own subscription.</p></a>
-  <a class="card" href="#statements"><h3>Check statements</h3><p>In Tau Ceti Review, say whether a declaration in the library states what it should, from the browser.</p></a>
+  <a class="card accent" href="#worker"><h3>Run a worker</h3><p>Install, check, do one unit of work. Ten minutes on a laptop.</p></a>
+  <a class="card" href="#roadmap"><h3>Shape what gets built</h3><p>Request roadmaps and review the drafts agents write.</p></a>
+  <a class="card" href="#statements"><h3>Statement review</h3><p>Say from the browser whether a declaration states what it should.</p></a>
+  <a class="card" href="#fleet"><h3>Run a fleet</h3><p>Persistent, sandboxed workers, paced under your quota and GitHub’s limits.</p></a>
+  <a class="card" href="#review"><h3>PR review</h3><p>Run the project’s rubrics on open pull requests, on your subscription.</p></a>
 </div>
 
 <h2 id="worker">Run a worker</h2>
-<p class="prose">The worker, <a href="https://github.com/TauCetiProject/TauCetiWorker"><code>tauceti</code></a>, runs as your GitHub account. Each round it picks the most useful job (review first, then fixes to pull requests, then new roadmap work), does it with your agent, and stops. You author through your own fork, which it creates for you, so you need no write access to Tau Ceti.</p>
+<p class="prose">The worker, <a href="https://github.com/TauCetiProject/TauCetiWorker"><code>tauceti</code></a>, runs as your GitHub account. Each round it does the first job that applies, in a fixed order: upkeep of its own pull requests and of the library first, then reviews of others’ pull requests, then new roadmap work (<a href="https://github.com/TauCetiProject/TauCetiWorker#what-a-round-does">the current order</a>). It does that one job with your agent, and stops. You author through your own fork, which it creates for you, so you need no write access to Tau Ceti.</p>
 <ol class="steps">
   <li>
     <h3>Install the prerequisites</h3>
@@ -50,7 +50,7 @@ tauceti work --loop      # keep picking the most useful job until Ctrl-C</code><
 <div class="callout">By default agents run with unrestricted access to your machine. For isolation, run rounds in the <a href="https://github.com/TauCetiProject/TauCetiWorker/blob/main/docs/sandbox.md"><code>--bubble</code> sandbox</a> (Linux with Incus).</div>
 
 <h2 id="fleet">Run a fleet</h2>
-<p class="prose">A fleet is several workers that run unattended. Workers coordinate through GitHub claims rather than through each other, so adding workers adds throughput, and your fleet never duplicates another operator’s work.</p>
+<p class="prose">A fleet is several workers that run unattended. Workers coordinate through GitHub claims rather than through each other: a worker takes a lease on its job, and claims steer it away from work another operator has registered, so adding workers adds throughput rather than duplicate work.</p>
 
 <div data-tabs>
   <div class="tabs" role="tablist">
@@ -104,7 +104,7 @@ tauceti-fleet up         # then the fleet, in pilot mode</code></pre>
   <p>Your GitHub account is credited for what it does. A merged pull request carries the account that opened it; the <a href="people.html">People page</a> counts merged pull requests and reviews by account; <a href="review/">Tau Ceti Review</a> records each answer under the account that gave it, beside the declaration it judges; and a roadmap’s history in TauCetiRoadmap shows who wrote and reviewed it. Run your workers under an account that says who is behind them.</p>
 </div>
 
-<h2 id="review">Review pull requests</h2>
+<h2 id="review">PR review: run the rubrics on pull requests</h2>
 <div class="prose">
   <p>Every pull request a worker opens is reviewed by agents before it merges, against fixed, open rubrics from <a href="https://github.com/TauCetiProject/TauCetiReview">TauCetiReview</a>. You can run the same engine on any open pull request with your own Claude or Codex subscription:</p>
 <pre><code># print the verdicts for PR #42, posting nothing
@@ -114,7 +114,7 @@ uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42
   <p>Or dedicate a worker to it: <code>tauceti work --loop --only review</code>. The <a href="health.html">health page</a> shows where pull requests are currently waiting.</p>
 </div>
 
-<h2 id="statements">Check statements in Tau Ceti Review</h2>
+<h2 id="statements">Statement review: check declarations in Tau Ceti Review</h2>
 <div class="prose">
   <p>Merged code compiles, but Lean cannot say whether a statement means what it should. <a href="review/">Tau Ceti Review</a> asks that one question of each declaration already in the library: is it correctly stated? Open a declaration and answer yes or no from the browser; the answer is recorded against that exact version of the declaration, and nothing in Tau Ceti changes. It leads with the named results announced on the Lean Zulip, the ones people are most likely to care about.</p>
   <p>Questions go to the Tau Ceti channel on the <a href="https://leanprover.zulipchat.com/">Lean Zulip</a>.</p>

@@ -406,34 +406,46 @@
     if (pre.parentNode) pre.parentNode.insertBefore(wrap, pre);
     wrap.append(pre);
     var b = TC.el("button", { class: "copy", type: "button", title: "Copy to clipboard", "aria-label": "Copy to clipboard" });
+    var status = TC.el("span", { class: "sr-only", role: "status" });
     setButton(b, "copy", "Copy");
     var timer;
     b.addEventListener("click", function () {
       var code = pre.querySelector("code") || pre;
       copyText(code.innerText.replace(/\n$/, "")).then(function () {
-        setButton(b, "done", "Copied"); b.classList.add("done");
-      }, function () { setButton(b, "copy", "Press ⌘C"); }).then(function () {
+        setButton(b, "done", "Copied"); b.classList.add("done"); status.textContent = "Copied to the clipboard";
+      }, function () { setButton(b, "copy", "Press ⌘C"); status.textContent = "Could not copy; select the text and press ⌘C"; }).then(function () {
         clearTimeout(timer);
-        timer = setTimeout(function () { setButton(b, "copy", "Copy"); b.classList.remove("done"); }, 1600);
+        timer = setTimeout(function () { setButton(b, "copy", "Copy"); b.classList.remove("done"); status.textContent = ""; }, 1600);
       });
     });
-    wrap.append(b);
+    wrap.append(b, status);
     return wrap;
   };
 
   /* ---------- page chrome ---------- */
   document.addEventListener("DOMContentLoaded", function () {
     TC.$$("pre").forEach(TC.copyable);
+    // Tabs: only the selected one is in the tab order; the arrow keys, Home and End move between them.
     TC.$$("[data-tabs]").forEach(function (group) {
       var buttons = TC.$$("[role=tab]", group);
-      buttons.forEach(function (b) {
-        b.addEventListener("click", function () {
-          buttons.forEach(function (o) {
-            var on = o === b;
-            o.setAttribute("aria-selected", on ? "true" : "false");
-            var p = document.getElementById(o.getAttribute("aria-controls"));
-            if (p) p.hidden = !on;
-          });
+      function select(b) {
+        buttons.forEach(function (o) {
+          var on = o === b;
+          o.setAttribute("aria-selected", on ? "true" : "false");
+          o.tabIndex = on ? 0 : -1;
+          var p = document.getElementById(o.getAttribute("aria-controls"));
+          if (p) p.hidden = !on;
+        });
+      }
+      buttons.forEach(function (b, i) {
+        b.tabIndex = b.getAttribute("aria-selected") === "true" ? 0 : -1;
+        b.addEventListener("click", function () { select(b); });
+        b.addEventListener("keydown", function (e) {
+          var j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: buttons.length - 1 }[e.key];
+          if (j === undefined) return;
+          e.preventDefault();
+          var next = buttons[(j + buttons.length) % buttons.length];
+          select(next); next.focus();
         });
       });
     });

@@ -3,12 +3,13 @@
   <div>
     <h1>Tau Ceti</h1>
     <p class="tag">Open, AI-authored, scalable mathematics library in Lean, built on Mathlib and aiming to include all areas of mathematics.</p>
-    <p class="lede">Humans choose the scope, design systems, and provide resources; agents create roadmaps, write formalizations, and review to ensure quality.</p>
+    <p class="lede">Humans choose the scope, design systems, and provide resources; agents create roadmaps, write formalizations, and review them against public criteria.</p>
     <div class="cta-row">
       <a class="cta" href="#use">Use it from Lean</a>
       <a class="cta ghost" href="contents.html">What’s inside</a>
       <a class="cta ghost" href="contribute.html">Contribute</a>
     </div>
+    {{latest_post}}
   </div>
   <img src="static/img/voyager.jpg" width="1400" height="1050" alt="Artist's concept of the Voyager spacecraft in flight, its white dish antenna and long boom against a starfield.">
 
@@ -18,7 +19,7 @@
   <div class="tile loading" data-stat="theorems"><div class="v">…</div><div class="k">theorems</div><div class="d"></div></div>
   <div class="tile loading" data-stat="definitions"><div class="v">…</div><div class="k">definitions</div><div class="d"></div></div>
   <div class="tile loading" data-stat="loc"><div class="v">…</div><div class="k">lines of Lean</div><div class="d"></div></div>
-  <div class="tile loading" data-stat="roadmaps"><div class="v">…</div><div class="k">roadmaps</div><div class="d"></div></div>
+  <div class="tile loading" data-stat="roadmaps"><div class="v">…</div><div class="k">top-level roadmaps</div><div class="d"></div></div>
   <div class="tile loading" data-stat="merged"><div class="v">…</div><div class="k">pull requests merged</div><div class="d"></div></div>
 </div>
 
@@ -33,7 +34,7 @@
 <h2>Is it stated correctly?</h2>
 <div class="panel review-panel" data-review-data="{{review_data}}">
   <div class="prose">
-    <p>Lean guarantees that every proof is correct. It cannot say whether a statement means what it should: a definition can be subtly off, or a hypothesis can make a theorem vacuous. <a href="review/">Tau Ceti Review</a> asks that question of every declaration in the library, and anyone can answer it, people and agents alike, from the browser.</p>
+    <p>Lean checks that each proof establishes its formal statement. It cannot say whether the statement means what it should: a definition can be subtly off, or a hypothesis can make a theorem vacuous. <a href="review/">Tau Ceti Review</a> asks that question of every declaration in the library, and anyone can answer it, people and agents alike, from the browser.</p>
   </div>
   <div class="tiles">
     <div class="tile loading" data-stat="r-decls"><div class="v">…</div><div class="k">declarations to review</div></div>
@@ -46,7 +47,7 @@
 
 <h2>Why it matters</h2>
 <div class="prose">
-  <p>AI can make dramatic progress in mathematics, and formalization is now clearly an essential companion to it: the Lean kernel gives feedback during proof exploration and guarantees that the final result is correct. Yet many AI-driven research projects have had to build things from scratch, doing extensive foundational work (often just to state the problem) before they can make new discoveries.</p>
+  <p>AI can make dramatic progress in mathematics, and formalization is now clearly an essential companion to it: the Lean kernel gives feedback during proof exploration and checks every step of the final proof. Yet many AI-driven research projects have had to build things from scratch, doing extensive foundational work (often just to state the problem) before they can make new discoveries.</p>
   <p>Tau Ceti collects that foundation in one place, solid and well engineered, so that humans and agents can build on it when they explore the research frontier. It depends on Mathlib and defers to Mathlib’s design decisions, and everything in it is free to reuse under the <a href="https://github.com/TauCetiProject/TauCeti/blob/main/LICENSE">Apache licence</a>.</p>
 </div>
 
@@ -54,30 +55,35 @@
 <p class="prose">Tau Ceti is an ordinary Lake package. Your project needs the same Lean toolchain as Tau Ceti, and gets Mathlib through it.</p>
 <ol class="steps">
   <li>
-    <h3>Match Tau Ceti’s toolchain</h3>
-    <p>Tau Ceti tracks Mathlib <code>master</code> and moves its toolchain with it. Copy its <code>lean-toolchain</code> into your project:</p>
-    <pre><code>curl -fsSL -o lean-toolchain https://raw.githubusercontent.com/TauCetiProject/TauCeti/main/lean-toolchain</code></pre>
-    <p class="small muted">Currently <code data-toolchain>…</code>.</p>
+    <h3>Pick a commit and its toolchain</h3>
+    <p>Tau Ceti tracks Mathlib <code>master</code> and moves its toolchain with it, so pin one Tau Ceti commit and copy the <code>lean-toolchain</code> of that same commit into your project:</p>
+<pre><code>REV=$(git ls-remote https://github.com/TauCetiProject/TauCeti refs/heads/main | cut -f1)
+curl -fsSL -o lean-toolchain https://raw.githubusercontent.com/TauCetiProject/TauCeti/$REV/lean-toolchain
+echo $REV</code></pre>
+    <p class="small muted"><code>main</code> is currently on <code data-toolchain>…</code>.</p>
   </li>
   <li>
     <h3>Require it in <code>lakefile.toml</code></h3>
 <pre><code>[[require]]
 name = "TauCeti"
 git = "https://github.com/TauCetiProject/TauCeti"
-rev = "main"   # or a commit hash, for a reproducible build</code></pre>
-    <p class="small muted">Don’t also require Mathlib at a different revision: Tau Ceti’s manifest pins the Mathlib it builds against, and Lake takes it from there. Tau Ceti merges hundreds of pull requests a day, so pin a commit for anything you need to keep building.</p>
+rev = "…"   # the commit printed above</code></pre>
+    <p class="small muted">Don’t also require Mathlib at a different revision: Tau Ceti’s manifest pins the Mathlib it builds against, and Lake takes it from there. Commit the <code>lake-manifest.json</code> Lake writes, which records the exact Tau Ceti and Mathlib commits. To move to a newer Tau Ceti, repeat step 1 with the new commit.</p>
   </li>
   <li>
     <h3>Fetch and build</h3>
 <pre><code>lake update TauCeti
 lake exe cache get    # Mathlib’s prebuilt oleans
 lake build</code></pre>
-    <p class="small muted"><code>lake build</code> compiles only the Tau Ceti modules your files import, not the whole library.</p>
+    <p class="small muted">Mathlib’s cache covers only Mathlib. Tau Ceti’s own cache (<code>scripts/lake-cache-get.sh</code>, in its <a href="https://github.com/TauCetiProject/TauCeti#building">README</a>) restores a Tau Ceti checkout built on its own, so in your project <code>lake build</code> compiles from source the Tau Ceti modules your files import, and only those.</p>
   </li>
   <li>
-    <h3>Import the modules you need</h3>
-    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules; find them in the <a href="https://taucetiproject.org/docs/">API documentation</a> or the <a href="atlas/tauceti/">Atlas</a>. For example:</p>
-    <pre><code>import TauCeti.RepresentationTheory.CharacterTable.Solvable</code></pre>
+    <h3>Import a module and check a result</h3>
+    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules; find them in the <a href="https://taucetiproject.org/docs/">API documentation</a>, on <a href="examples.html">Examples</a> or in the <a href="atlas/tauceti/">Atlas</a>. For example:</p>
+<pre><code>import TauCeti.Analysis.Complex.Conformal.RiemannMapping.Existence
+
+#check TauCeti.riemannMapping</code></pre>
+    <p class="small muted">Save it as a file in your project and run <code>lake env lean</code> on it, or open it in your editor: it prints the statement of the Riemann mapping theorem.</p>
   </li>
 </ol>
 

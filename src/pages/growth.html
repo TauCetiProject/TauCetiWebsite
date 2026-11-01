@@ -2,7 +2,7 @@
 <p class="eyebrow">Growth</p>
 <h1>How fast is it growing?</h1>
 
-<div class="tiles">
+<div class="tiles seven">
   <div class="tile loading" data-stat="theorems"><div class="v">…</div><div class="k">theorems</div><div class="d"></div></div>
   <div class="tile loading" data-stat="definitions"><div class="v">…</div><div class="k">definitions</div><div class="d"></div></div>
   <div class="tile loading" data-stat="loc"><div class="v">…</div><div class="k">lines of Lean</div><div class="d"></div></div>
@@ -25,8 +25,8 @@
 </div>
 
 <div class="panel">
-  <h3>Lines of Lean by area</h3>
-  <p class="sub">Net lines landed by merged pull requests, stacked by the arXiv category of the roadmap each advances. The seven largest areas are shown; the rest are combined. This sums diffs, so a line rewritten later counts twice.</p>
+  <h3>Net lines of Lean by area</h3>
+  <p class="sub">Net lines of Lean (added minus deleted, under <code>TauCeti/</code>) of each merged pull request, stacked by the arXiv category of the roadmap its label names. The seven largest categories are shown; the rest are combined. A line that a later pull request replaces nets to zero, so this is what each area’s pull requests added and kept: not the effort spent, and not the current size of its files, which pull requests for other roadmaps also edit.</p>
   <div id="topics"><p class="muted">Loading…</p></div>
 </div>
 
@@ -53,7 +53,7 @@
   </div>
   <div class="panel">
     <h3>Roadmaps</h3>
-    <p class="sub">Active and archived roadmaps, including the sub-roadmaps of an umbrella.</p>
+    <p class="sub">Top-level roadmaps, active and archived as complete. A sub-roadmap of an umbrella adds layers to it, not a roadmap; proposed roadmaps are not counted.</p>
     <div id="roadmaps"><p class="muted">Loading…</p></div>
   </div>
 </div>

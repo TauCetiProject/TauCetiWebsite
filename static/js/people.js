@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
     desc.replace(/(\w+): (\d+)/g, function (_, name, n) { repos.push({ label: name, value: +n, href: "https://github.com/TauCetiProject/" + name }); });
     if (!total || !repos.length) throw new Error("unexpected chart format");
     TC.set("people", TC.fmt(+total[1]), "as of " + TC.dayYear(total[2]));
-    TC.bars("#participation", repos.map(function (r) { r.color = TC.SERIES[1]; r.valueText = TC.fmt(r.value) + " people"; return r; }));
+    TC.bars("#participation", repos.map(function (r) { r.color = TC.SERIES[1]; r.valueText = TC.fmt(r.value) + " accounts"; return r; }));
   }).catch(function (e) { TC.fail("#participation", e); });
 
   TC.live("pr-stats.json").then(function (s) {

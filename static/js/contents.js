@@ -5,8 +5,8 @@ document.addEventListener("DOMContentLoaded", function () {
   TC.live("roadmap-completion.json").then(function (rc) {
     var h = rc.history[rc.history.length - 1];
     TC.set("loc", TC.fmt(rc.forecast.library_lines), "as of " + TC.dayYear(rc.forecast.last_full_day));
-    TC.set("roadmaps", TC.fmt(h.roadmaps), h.completed_roadmaps + " archived as complete");
-    TC.set("layers", TC.fmt(h.completed_layers) + " / " + TC.fmt(h.layers), TC.pct(h.completed_layers / h.layers) + " of named layers");
+    TC.set("roadmaps", TC.fmt(h.roadmaps), h.completed_roadmaps + " archived as complete, as of " + TC.dayYear(h.date));
+    TC.set("layers", TC.fmt(h.completed_layers), "of " + TC.fmt(h.layers) + " named (" + TC.pct(h.completed_layers / h.layers) + "), as of " + TC.dayYear(h.date));
   }).catch(console.error);
   TC.local("library-loc.json").then(function (l) { TC.set("files", TC.fmt(l.files_now)); })
     .catch(function () { TC.set("files", "—"); });

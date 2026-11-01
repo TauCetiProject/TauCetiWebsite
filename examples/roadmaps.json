@@ -3,7 +3,7 @@
   "roadmap": "AdicSpaces",
   "decl": "TauCeti.Huber.isSheafyRing_of_isStronglyNoetherian",
   "module": "TauCeti.AlgebraicGeometry.AdicSpace.Spa.StructurePresheaf.StronglyNoetherian",
-  "title": "Tate acyclicity for strongly noetherian Tate rings",
+  "title": "Sheafiness of strongly noetherian Tate rings",
   "summary": "Every strongly noetherian Tate ring is sheafy: the structure presheaf on Spa(A, A⁺) is a sheaf for every ring of integral elements A⁺ (Huber; Wedhorn, Theorem 8.28(b)).",
   "note": "The roadmap's final application, the adic Fargues–Fontaine curve, is in TauCeti.AlgebraicGeometry.AdicSpace.FarguesFontaine.Adic (isSheaf_spaYPresheaf, isAdic_spaXPreAdicSpace), but its statements carry setup hypotheses and are less readable."
  },

@@ -31,6 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
     unreported: function (r) { return !hasReport(r); },
     unassessed: function (r) { return r.states.indexOf("unassessed") >= 0; },
     due: due,
+    readme: readmeChanged,
   };
   function act(r, k) { return r.activity ? r.activity[k] || 0 : 0; }
   var SORT = {
@@ -79,6 +80,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // A link inside <summary> navigates without toggling; the rest of the summary still toggles.
     var name = TC.el("div", { class: "rm-name" }, [TC.el("a", { href: pageHref(r.id), text: r.name })]);
     if (r.completed) name.append(TC.el("span", { class: "badge", text: "complete" }));
+    if (readmeChanged(r)) name.append(TC.el("span", { class: "badge readme", text: "README changed" }));
     name.append(TC.el("small", { text: r.title || "" }));
     var meta = TC.el("div", { class: "rm-meta" }, [
       document.createTextNode(n ? done + "/" + n + " layers" : r.completed ? "archived" : "no layers"),

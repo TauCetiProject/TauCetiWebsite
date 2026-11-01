@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var f = rc.forecast;
     TC.set("loc", TC.fmt(f.library_lines), "as of " + TC.dayYear(f.last_full_day));
     var h = rc.history[rc.history.length - 1];
-    TC.set("roadmaps", TC.fmt(h.roadmaps), h.completed_roadmaps + " archived as complete");
+    TC.set("roadmaps", TC.fmt(h.roadmaps), h.completed_roadmaps + " archived as complete, as of " + TC.dayYear(h.date));
   }).catch(function (e) { TC.set("loc", "—"); TC.set("roadmaps", "—"); console.error(e); });
 
   TC.live("progress.json").then(function (p) {

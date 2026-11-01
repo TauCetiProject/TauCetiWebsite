@@ -14,8 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_site import site_header  # noqa: E402
 
 # The Atlas fills the viewport below its own header (--header); these move that space, and the panels it
-# fixes below its header, down by the bar's height.
-ATLAS_NAV_STYLE = ("<style>:root{--sitebar:49px}.site-nav{position:relative}.site-nav .theme-toggle{display:none}"
+# fixes below its header, down by the bar's height. Its --faint text (#5b6875, 3.2:1 on its panels) is
+# raised to the 4.5:1 small text needs.
+ATLAS_NAV_STYLE = ("<style>:root{--sitebar:49px;--faint:#7f8c9a}.site-nav{position:relative}.site-nav .theme-toggle{display:none}"
                    ".app-layout{height:calc(100dvh - var(--header) - var(--sitebar))}"
                    ".inspector,.catalogue-open .sidebar{top:calc(var(--header) + var(--sitebar))}</style>")
 

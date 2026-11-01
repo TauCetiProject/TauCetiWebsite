@@ -9,6 +9,11 @@ figures draw on (linked from the footer, for download):
 
 "live:NAME" is taucetiproject.org's published static/NAME; anything else is a path in this site.
 
+A page in a subdirectory, src/pages/DIR/.../index.html, is built at the same path, its links relative
+to the site root through {{root}}. News posts are src/pages/blog/SLUG/index.html, whose header also
+gives "date" (YYYY-MM-DD) and "authors"; the news index and the homepage list them through {{posts}}
+and {{latest_post}}.
+
 Usage: python3 scripts/build_site.py [--out _site] [--data data]
 """
 from __future__ import annotations
@@ -28,13 +33,13 @@ ROOT = Path(__file__).resolve().parent.parent
 # dropdown. Every page in src/pages is built; the footer links the same pages.
 NAV = [
     ("Home", "index.html"),
-    ("Library", [("Overview", "contents.html"), ("Roadmaps", "structure.html"), ("Examples", "examples.html"), ("Atlas", "atlas/"),
-                 ("Review", "review/"), ("API docs", "https://taucetiproject.org/docs/")]),
+    ("Library", [("Overview", "contents.html"), ("Roadmaps", "structure.html"), ("Examples", "examples.html"), ("Roadmap atlas", "atlas/"),
+                 ("Statement review", "review/"), ("API docs", "https://taucetiproject.org/docs/")]),
     ("Contribute", [("Start in one paste", "contribute.html#start"), ("Run a worker", "contribute.html#worker"),
                     ("Run a fleet", "contribute.html#fleet"), ("Shape the roadmaps", "contribute.html#roadmap"),
-                    ("Review pull requests", "contribute.html#review"),
-                         ("Check statements", "contribute.html#statements")]),
-    ("Project", [("Growth", "growth.html"), ("People", "people.html"), ("Health", "health.html"),
+                    ("PR review", "contribute.html#review"),
+                         ("Statement review", "contribute.html#statements")]),
+    ("Project", [("News", "blog/"), ("Growth", "growth.html"), ("People", "people.html"), ("Health", "health.html"),
                  ("Acknowledgments", "acknowledgments.html")]),
     ("FAQ", "faq.html"),
 ]
@@ -90,15 +95,46 @@ def site_header(current: str, root: str = "") -> str:
     return (ROOT / "src/header.html").read_text().replace("{{nav}}", nav).replace("{{home}}", root or "./").replace("{{root}}", root).rstrip("\n")
 
 
-def data_links(files: list[str]) -> str:
+def data_links(files: list[str], root: str = "") -> str:
     if not files:
         return ""
     links = []
     for f in files:
-        url = LIVE + f.removeprefix("live:") if f.startswith("live:") else f
+        url = LIVE + f.removeprefix("live:") if f.startswith("live:") else root + f
         links.append(f'<a href="{html.escape(url)}" download>{html.escape(url.rsplit("/", 1)[-1])}</a>')
     return ("        <p class=\"small muted data-links\">The data behind this page, to download: "
             + " · ".join(links) + ".</p>")
+
+
+def byline(meta: dict) -> str:
+    """A news post's authors and date, as its page shows them under the title."""
+    if "date" not in meta:
+        return ""
+    day = dt.date.fromisoformat(meta["date"])
+    who = " and ".join(html.escape(a) for a in meta.get("authors", []))
+    return (f'<p class="byline">{who + " · " if who else ""}'
+            f'<time datetime="{day.isoformat()}">{day.day} {day:%B %Y}</time></p>')
+
+
+def post_url(file: str, root: str) -> str:
+    return root + file.removesuffix("index.html")
+
+
+def post_list(posts: list[tuple[str, dict]], root: str) -> str:
+    items = []
+    for file, meta in posts:
+        items.append(f'  <a class="card post" href="{post_url(file, root)}"><h3>{html.escape(meta["title"])}</h3>'
+                     f'{byline(meta)}<p>{html.escape(meta.get("description", ""))}</p>'
+                     f'<span class="arrow">Read it →</span></a>')
+    return '<div class="posts">\n' + "\n".join(items) + "\n</div>"
+
+
+def latest_post(posts: list[tuple[str, dict]], root: str) -> str:
+    if not posts:
+        return ""
+    file, meta = posts[0]
+    return (f'<p class="latest small">Latest news: <a href="{post_url(file, root)}">{html.escape(meta["title"])}</a>'
+            f' <span class="muted">· {dt.date.fromisoformat(meta["date"]):%-d %b %Y}</span></p>')
 
 
 def review_app(out: Path, data_url: str, version: str) -> None:
@@ -145,13 +181,17 @@ def main() -> None:
     for f in sorted((ROOT / "src/agent").glob("*")):
         shutil.copy(f, args.out / f.name)
 
-    pages = sorted(p.name for p in (ROOT / "src/pages").glob("*.html"))
-    for file in pages:
-        src = (ROOT / "src/pages" / file).read_text()
+    pages = {}
+    for path in sorted((ROOT / "src/pages").rglob("*.html")):
+        file = path.relative_to(ROOT / "src/pages").as_posix()
+        src = path.read_text()
         m = HEADER.match(src)
-        meta = json.loads(m.group(1)) if m else {}
-        body = src[m.end():] if m else src
-        scripts = "\n".join(f'  <script src="static/js/{s}?v={version}" defer></script>'
+        pages[file] = (json.loads(m.group(1)) if m else {}, src[m.end():] if m else src)
+    posts = sorted(((f, meta) for f, (meta, _) in pages.items() if f.startswith("blog/") and "date" in meta),
+                   key=lambda p: p[1]["date"], reverse=True)
+    for file, (meta, body) in pages.items():
+        root = "../" * file.count("/")
+        scripts = "\n".join(f'  <script src="{root}static/js/{s}?v={version}" defer></script>'
                             for s in meta.get("scripts", []))
         title = meta.get("title", "Tau Ceti")
         page = (layout
@@ -159,12 +199,17 @@ def main() -> None:
                 .replace("{{description}}", html.escape(meta.get("description", "")))
                 .replace("{{scripts}}", scripts)
                 .replace("{{theme_init}}", THEME_INIT)
-                .replace("{{header}}", site_header(file))
-                .replace("{{data_links}}", data_links(meta.get("data", [])))
-                .replace("{{page}}", file.removesuffix(".html"))
+                .replace("{{header}}", site_header("blog/" if file.startswith("blog/") else file, root))
+                .replace("{{data_links}}", data_links(meta.get("data", []), root))
+                .replace("{{page}}", file.removesuffix(".html").removesuffix("/index").replace("/", "-"))
                 .replace("{{version}}", version)
                 .replace("{{content}}", body)
+                .replace("{{posts}}", post_list(posts, root))
+                .replace("{{latest_post}}", latest_post(posts, root))
+                .replace("{{byline}}", byline(meta))
+                .replace("{{root}}", root)
                 .replace("{{review_data}}", html.escape(args.review_data.rstrip("/") + "/")))
+        (args.out / file).parent.mkdir(parents=True, exist_ok=True)
         (args.out / file).write_text(page)
     print(f"built {len(pages)} pages into {args.out}")
 

@@ -65,11 +65,26 @@
     });
     document.addEventListener("click", function (e) { if (!bar.contains(e.target)) close(null); });
 
+    // The narrow-screen drawer. Its links come before the Menu button in the page, so opening it moves
+    // focus into it, and closing it by Escape returns focus to the button.
     var menuBtn = bar.querySelector(".nav-toggle"), links = bar.querySelector(".nav-links");
-    if (menuBtn && links) menuBtn.addEventListener("click", function () {
-      var isOpen = links.classList.toggle("open");
-      menuBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    });
+    function drawer(open, refocus) {
+      links.classList.toggle("open", open);
+      menuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) { var first = links.querySelector("a"); if (first) first.focus(); }
+      else if (refocus) menuBtn.focus();
+    }
+    if (menuBtn && links) {
+      menuBtn.addEventListener("click", function () { drawer(!links.classList.contains("open"), false); });
+      links.addEventListener("click", function (e) { if (e.target.closest("a") && narrow.matches) drawer(false, false); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && links.classList.contains("open")) drawer(false, true);
+      });
+      document.addEventListener("click", function (e) {
+        if (links.classList.contains("open") && !bar.contains(e.target)) drawer(false, false);
+      });
+      if (narrow.addEventListener) narrow.addEventListener("change", function () { if (!narrow.matches) drawer(false, false); });
+    }
 
     var theme = bar.querySelector(".theme-toggle");
     if (!theme) return;

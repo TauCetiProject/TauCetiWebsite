@@ -117,6 +117,10 @@ document.addEventListener("DOMContentLoaded", function () {
         TC.el("a", { href: blob + r.readme, text: "Full README" }), dot(),
         TC.el("a", { href: blob + dir + "/STATUS.md", text: "latest report" }), dot(),
         TC.el("a", { href: "https://github.com/TauCetiProject/TauCetiRoadmap/tree/" + ref + "/" + dir, text: "the roadmap on GitHub" }));
+      // Maps and write-ups others have published about this roadmap.
+      (r.links || []).forEach(function (l) {
+        if (l && l.url) TC.$("#rm-readme-links").append(dot(), TC.el("a", { href: l.url, text: l.label || "more" }));
+      });
       return blob + r.readme;
     }
     links("main");
@@ -178,6 +182,27 @@ document.addEventListener("DOMContentLoaded", function () {
       TC.el("a", { href: PULLS + encodeURIComponent(q + " is:open"), text: "open pull requests" }));
   }
 
+  // Where the layer states come from: the report, the library commit it describes, and how it was read.
+  var UNREAD = {
+    "no-report": "No report has been written yet, so every layer is shown as not yet assessed.",
+    "invalid-marker": "The latest report’s coverage marker does not list exactly this README’s layers, so they are shown as not yet assessed until the next report.",
+    "not-transcribed": "The latest report has no coverage marker and has not been transcribed by hand, so its layers are shown as not yet assessed.",
+  };
+  function provenance(r, umbrella) {
+    if (r.completed || !r.states.length) return null;
+    var a = r.assessment || {}, st = r.status || {}, out = TC.el("p", { class: "small muted provenance" });
+    if (a.reason !== "ok") out.append(document.createTextNode(UNREAD[a.reason] || "These layers have not been assessed. "));
+    else {
+      out.append(document.createTextNode("States from the report of " + TC.dayYear(st.ts) + (st.inherited && umbrella ? " on " + umbrella.name : "")));
+      if (st.to_sha) out.append(document.createTextNode(", describing Tau Ceti at "),
+        TC.el("a", { href: "https://github.com/TauCetiProject/TauCeti/tree/" + st.to_sha, text: st.to_sha.slice(0, 7) }));
+      out.append(document.createTextNode(a.source === "marker" ? ", read from its coverage marker." : ", transcribed by hand from its prose."));
+      if (a.readme_changed) out.append(document.createTextNode(" The README has been edited since, keeping the same layers; the next report will assess it as it now stands."));
+    }
+    out.append(document.createTextNode(" "), TC.el("a", { href: "structure.html#how-to-read", text: "How to read these states" }));
+    return out;
+  }
+
   /* ---------- the page ---------- */
   function render(data, areas, prs) {
     var rows = data.rows.filter(function (r) { return !r.retired; });
@@ -237,6 +262,9 @@ document.addEventListener("DOMContentLoaded", function () {
     TC.$("#layers-sub").textContent = layersSub;
     TC.$("#layers-sub").hidden = !layersSub;
     if (!n && !r.completed) TC.$("#rm-strip").hidden = TC.$(".rm-legend").hidden = true;
+    var prov = provenance(r, umbrella);
+    if (prov) TC.$("#layers-sub").after(prov);
+    if (readmeChanged(r)) h1.append(TC.el("span", { class: "badge readme", text: "README changed" }));
     TC.$("#rm-layers").replaceChildren.apply(TC.$("#rm-layers"), r.layers.map(function (l, i) {
       var s = r.completed ? "done" : r.states[i];
       var li = TC.el("li", null, [TC.el("span", { class: "state " + s, text: s }), document.createTextNode(l)]);

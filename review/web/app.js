@@ -1423,7 +1423,9 @@
   addEventListener('scroll', () => closeCards(0), {passive: true});
 
   /* --- wiring --------------------------------------------------------------------------------------- */
-  async function route() {
+  // On a navigation (not the first page, and not a search being typed), the title names the new page and
+  // focus moves to its heading, as a page load would put it.
+  async function route(ev) {
     const r = parse(location.hash);
     if (location.hash && !location.hash.startsWith('#/') && r[0] !== 'missing') history.replaceState(null, '', address(r));
     current = r.join(':');
@@ -1441,7 +1443,15 @@
       }
       console.error(e);
     }
-    if (gen === generation) ready = true;
+    if (gen === generation) {
+      ready = true;
+      const h = main.querySelector('h1');
+      const name = h && h.textContent.trim();
+      document.title = name && name !== 'Tau Ceti Review' ? name + ' — Tau Ceti Review' : 'Tau Ceti Review';
+      if (ev && ev.type === 'hashchange' && r[0] !== 'search') {
+        if (h) { h.tabIndex = -1; h.focus({preventScroll: true}); } else main.focus({preventScroll: true});
+      }
+    }
   }
   let typing = null;
   const search = value => {

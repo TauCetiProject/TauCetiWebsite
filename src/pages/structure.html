@@ -44,6 +44,7 @@
     <option value="unreported">without a report</option>
     <option value="unassessed">with unassessed layers</option>
     <option value="due">update due</option>
+    <option value="readme">README changed</option>
   </select></label>
   <label>Sort <select id="sort">
     <option value="activity">recent activity</option>
@@ -62,13 +63,33 @@
   <span><i style="background:var(--seg-untouched)"></i>untouched</span>
   <span><i style="background:repeating-linear-gradient(135deg,var(--seg-hatch) 0 3px,transparent 3px 6px)"></i>not yet assessed</span>
   <span><i style="background:var(--link)"></i>archived as complete</span>
+  <a href="#how-to-read">How to read this board</a>
 </div>
 <p class="freshness" id="board-meta"></p>
 <div id="board"><p class="muted">Loading the roadmaps…</p></div>
-<details class="methods">
-  <summary>How to read this board</summary>
-  <div class="prose small">
-    <p>Layers are the headings of the human-written README. Their states come from the roadmap’s generated <code>STATUS.md</code>: a model’s account of the library at the commit it names, not a certificate that every sentence of the layer is met. Where a report says nothing about a layer, or the README changed its layers since, the layer is shown as not yet assessed.</p>
-    <p>“Declared complete” is the maintainers’ judgment, recorded by moving a roadmap to <code>Completed/</code>. A report is due an update once ten or more pull requests have merged under the roadmap since it, or its README has changed. Merged pull requests count those carrying the roadmap’s <code>roadmap/…</code> label; sub-roadmaps share their umbrella’s. The areas within Number Theory, Algebraic Geometry and Representation Theory are the Atlas’s, which places a roadmap by the phrases in its title. The full board, with its methodology, is at <a href="https://taucetiproject.org/progress">taucetiproject.org/progress</a>.</p>
-  </div>
-</details>
+<noscript><p class="callout">This board needs JavaScript. Without it, each roadmap’s latest report is its <code>STATUS.md</code> in <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a>, and the board’s data is <a href="https://taucetiproject.org/static/progress.json">progress.json</a>.</p></noscript>
+
+<h2 id="how-to-read">How to read this board</h2>
+<div class="prose methods">
+  <p>The board measures how far each roadmap has got against its own README. That is coverage of the roadmaps that exist, not of mathematics, and it is not volume: lines of Lean and merged pull requests are on <a href="growth.html">Growth</a>. Three kinds of evidence go into it, kept apart.</p>
+
+  <h3>Layers</h3>
+  <p>A roadmap’s layers are the headings of its human-reviewed README (layers, lanes, parts or stages). They do not move when code lands. “Layers reported done” is a count of headings, never a percentage: layers differ in size, and a partial layer is not known to be half done. A roadmap whose README names its milestones some other way has no layers here, which says nothing about its work.</p>
+
+  <h3>Layer states</h3>
+  <p>States come from the roadmap’s latest generated report, its <code>STATUS.md</code>, which <a href="https://github.com/TauCetiProject/TauCetiProgress">TauCetiProgress</a> writes after each window of merged pull requests. “Done” means the report, describing the library at the commit named in its header, says the layer’s milestones are proved. It is a model’s account of the work, not a certificate that every sentence of the layer is met. A layer the report says nothing about is not yet assessed, and so is every layer of a roadmap with no report.</p>
+  <p>Each report carries a coverage marker naming the roadmap, the library commit, a hash of the README it assessed, and a state and a note of what remains for each layer. The board uses a marker only when it names this roadmap and lists exactly the layers the README names, so an assessment is never attached to layers it did not judge. A report without a marker can still be read through a file transcribed by hand from its prose, tied to that exact report and README. Each roadmap’s page says which of these its states come from, and the library commit they describe.</p>
+  <p>When a README is edited after its report but still names the same layers, the report’s states stay, marked <span class="badge readme">README changed</span>, until the next report assesses the README as it now stands. A README that adds, removes or renumbers a layer leaves its layers unassessed until then. A sub-roadmap’s change also marks its umbrella, whose totals include it.</p>
+
+  <h3>Activity</h3>
+  <p>Merged pull requests are counted under the roadmap’s <code>roadmap/…</code> label, up to the stated cutoff; sub-roadmaps share their umbrella’s label and so its count. A pull request with no roadmap label, or more than one, counts in the overall figures but under no roadmap. Open pull requests with the label are work in flight that no report describes yet.</p>
+
+  <h3>What the board does not say</h3>
+  <ul>
+    <li>It adds no checking of its own: Lean checks the proofs.</li>
+    <li>“Declared complete” is the maintainers’ judgment, recorded by moving a roadmap to <code>Completed/</code>. It is shown beside the report’s assessment, not in place of it, and the two can disagree.</li>
+    <li>A report always lags the library, so its age alone is not a signal. A roadmap is marked <em>update due</em> once ten or more pull requests have merged under it since its report, the threshold at which TauCetiProgress opens a new window, or its README has changed. Ten is a rule of thumb, not a guarantee that nothing relevant happened below it.</li>
+    <li>The representation-theory umbrella is reported as one unit: its sub-roadmaps share its report and its label.</li>
+  </ul>
+  <p>The areas within Number Theory, Algebraic Geometry and Representation Theory are the <a href="atlas/">Atlas</a>’s, which places a roadmap by the phrases in its title. Where someone has published a map or write-up of a roadmap, its row and its page link to it.</p>
+</div>

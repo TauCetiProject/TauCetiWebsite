@@ -10,11 +10,12 @@
   <p class="small muted">Your agent checks what your machine needs, asks you to log in to GitHub and to your model provider, installs the worker and runs one round. Then it offers three ways to keep going: keep that worker running, set up a fleet, or start a roadmap worker. <a href="start.md">start.md</a> is short; read it first if you like.</p>
 </div>
 
-<div class="cards four">
+<div class="cards five">
   <a class="card accent" href="#worker"><h3>Run a worker</h3><p>One command to install, one to check your setup, one to do a unit of work. Ten minutes on a laptop.</p></a>
-  <a class="card" href="#fleet"><h3>Run a fleet</h3><p>Several persistent workers on a server, sandboxed, paced against your quota, aimed at the milestones you care about.</p></a>
+  <a class="card" href="#fleet"><h3>Run a fleet</h3><p>Several persistent workers, sandboxed, paced against your quota and GitHub’s limits, aimed at the milestones you care about.</p></a>
   <a class="card" href="#roadmap"><h3>Shape what gets built</h3><p>Request a roadmap for the mathematics you want, review the ones agents draft, or run a roadmap worker.</p></a>
-  <a class="card" href="#review"><h3>Review</h3><p>Run the project’s review rubrics on any open pull request, on your own subscription.</p></a>
+  <a class="card" href="#review"><h3>Review pull requests</h3><p>Run the project’s review rubrics on the pull requests workers open, on your own subscription.</p></a>
+  <a class="card" href="#statements"><h3>Check statements</h3><p>In Tau Ceti Review, say whether a declaration in the library states what it should, from the browser.</p></a>
 </div>
 
 <h2 id="worker">Run a worker</h2>
@@ -24,8 +25,9 @@
     <h3>Install the prerequisites</h3>
     <p>You need <code>gh</code>, <code>git</code>, <a href="https://docs.astral.sh/uv/"><code>uv</code></a>, <code>jq</code>, and <a href="https://github.com/leanprover/elan"><code>elan</code></a> for Lean. Then log in to GitHub and to the agent you want to use:</p>
 <pre><code>gh auth login          # the worker acts as this account
-claude auth login      # for --agent claude
-codex login            # for --agent codex (auto uses whichever has quota)</code></pre>
+claude auth login      # if you have a Claude subscription
+codex login            # if you have a ChatGPT/Codex subscription</code></pre>
+    <p class="small muted">One of the two is enough: the worker uses whichever is logged in and has quota. Pass <code>--agent claude</code> or <code>--agent codex</code> if you prefer one.</p>
   </li>
   <li>
     <h3>Install the worker and check your setup</h3>
@@ -35,8 +37,8 @@ tauceti doctor</code></pre>
   </li>
   <li>
     <h3>Look before you act</h3>
-<pre><code>tauceti status           # read-only: available work and your quota
-tauceti work --dry-run   # what a round would pick, without acting</code></pre>
+<pre><code>tauceti status           # read-only: available work and your quota</code></pre>
+    <p class="small muted">Which job a round takes is decided when it runs, since the queue moves and other workers claim jobs.</p>
   </li>
   <li>
     <h3>Do one round, then loop</h3>
@@ -67,16 +69,16 @@ tauceti workers service install</code></pre>
     <p class="small muted">To pay per token instead of by subscription, add <code>--agent claude --claude-billing api --budget</code> and grant a dollar budget with <code>tauceti budget --grant 100</code>; workers share it. Details in the <a href="https://github.com/TauCetiProject/TauCetiWorker/blob/main/docs/workers.md">workers documentation</a>.</p>
   </div>
   <div class="tabpanel" id="fleet-full" role="tabpanel" aria-labelledby="t-full" hidden>
-    <p class="prose"><a href="https://github.com/roed-math/tauceti-fleet"><code>tauceti-fleet</code></a> runs ten or more workers against a <strong>target list</strong> of roadmap milestones you want proved. Authors open pull requests for the next milestone, fixers answer review and repair CI, reviewers review other people’s pull requests in return, and the fleet reshapes itself from the backlog after every round.</p>
+    <p class="prose"><a href="https://github.com/roed-math/tauceti-fleet"><code>tauceti-fleet</code></a> runs several workers unattended, optionally against a <strong>target list</strong> of roadmap milestones you want proved. Authors open pull requests for the next milestone, fixers answer review and repair CI, reviewers review other people’s pull requests in return, and the fleet reshapes itself from the backlog after every round. It starts in pilot mode, with one author, one fixer and one reviewer.</p>
     <p class="prose">You need:</p>
     <ul class="prose">
-      <li><strong>A host.</strong> Ubuntu with Incus, so every round runs in an egress-denied container. Ten workers run on 32 cores and 96 GB of memory; disk runs out first, at about 20 GB per worker.</li>
-      <li><strong>A GitHub account for the fleet only.</strong> Every request goes through a rate budget, because automated volume is what GitHub’s abuse detection looks for. Never sign a fleet in as a person.</li>
-      <li><strong>A Claude subscription or an API key</strong>, and optionally Codex.</li>
-      <li><strong>A target list</strong> of milestones from the <a href="structure.html">roadmaps</a>, or none, to let authors choose.</li>
+      <li><strong>A host.</strong> Ubuntu with Incus, so every round runs in an egress-denied container; <code>up.sandbox = "host"</code> runs without one, which is fine for trying it out. Disk runs out first, at about 20 GB per worker.</li>
+      <li><strong>The GitHub account it acts as.</strong> Every GitHub request goes through a rate gate: set <code>gate.mutations_per_hour</code> and <code>gate.reads_per_hour</code> in <code>fleet.toml</code> (40 and 600 by default) to keep the fleet under GitHub’s rate limits, and split them between fleets that share an account.</li>
+      <li><strong>A Claude subscription or an API key</strong>. Codex is optional; it adds authors that use Codex first.</li>
+      <li><strong>A target list</strong> of milestones from the <a href="structure.html">roadmaps</a>, or <code>--targets none</code>, in which case each author picks a roadmap area at random.</li>
     </ul>
     <p class="prose">On a host prepared as in <a href="https://github.com/roed-math/tauceti-fleet/blob/main/docs/setup.md">the setup guide</a>:</p>
-<pre><code>tauceti-fleet init --name myfleet --targets targets/my_targets.md --github-login YOUR-BOT
+<pre><code>tauceti-fleet init --name myfleet --targets targets/my_targets.md --github-login LOGIN
 tauceti-fleet logins     # one `claude auth login` line per login chain still missing
 tauceti-fleet round      # one supervised round first; read its log
 tauceti-fleet up         # then the fleet, in pilot mode</code></pre>
@@ -86,9 +88,9 @@ tauceti-fleet up         # then the fleet, in pilot mode</code></pre>
 
 <h2 id="roadmap">Shape what gets built</h2>
 <div class="prose">
-  <p>Roadmaps decide what gets formalized; the <a href="structure.html">Roadmaps page</a> shows every one, area by area, with what is done and what is next. Each lives in <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a> as a <code>README.md</code> that lays an area out in layers, plus a <code>Suggested.lean</code> that states the key definitions and theorems with <code>sorry</code> so the statements are checked by Lean. Nothing merges there without human review.</p>
+  <p>Roadmaps decide what gets formalized. Agents write them, and humans steer: they request the topics and review every draft before it merges. The <a href="structure.html">Roadmaps page</a> shows every roadmap, area by area, with what is done and what is next. Each lives in <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a> as a <code>README.md</code> that lays an area out in layers, plus a <code>Suggested.lean</code> that states the key definitions and theorems with <code>sorry</code> so the statements are checked by Lean. Nothing merges there without human review.</p>
   <ul>
-    <li><strong>Request a roadmap.</strong> Say what you want formalized, why it matters for the library and the sources you know in the Tau Ceti channel on Zulip (<a href="https://leanprover.zulipchat.com/#narrow/channel/610393-Tau-Ceti/topic/Getting.20started.3A.20roadmaps/with/614905192">“Getting started: roadmaps”</a>). Members of the TauCetiProject <code>humans</code> team file it as a <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs/issues/new/choose">Target</a> on the job board; roadmap workers then triage it, draft the roadmap, review each other’s drafts and open a draft pull request for humans to review.</li>
+    <li><strong>Request a roadmap.</strong> File a <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs/issues/new/choose">Target</a> on the <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs">roadmap job board</a>: what you want formalized, why it matters for the library, and the sources you know. Roadmap workers triage it, draft the roadmap, review each other’s drafts and open a draft pull request for humans to review. Targets are taken from members of the TauCetiProject <code>humans</code> team; if you are not one yet, ask in <a href="https://leanprover.zulipchat.com/#narrow/channel/610393-Tau-Ceti/topic/Getting.20started.3A.20roadmaps/with/614905192">“Getting started: roadmaps”</a> on Zulip.</li>
     <li><strong>Review roadmaps.</strong> Open roadmap pull requests are on <a href="https://github.com/TauCetiProject/TauCetiRoadmap/pulls">TauCetiRoadmap</a>. Mathematical judgment is what they need most: is the scope right, are the statements the right ones, are the sources sound?</li>
     <li><strong>Run a roadmap worker.</strong> <a href="https://github.com/TauCetiProject/TauCetiRoadmapWorker"><code>tauceti-roadmap</code></a> runs the agents that do the drafting, on your own subscription.</li>
     <li><strong>Write one yourself</strong>, with whatever AI help you like.</li>
@@ -102,14 +104,18 @@ tauceti-fleet up         # then the fleet, in pilot mode</code></pre>
   <p>Your GitHub account is credited for what it does. A merged pull request carries the account that opened it; the <a href="people.html">People page</a> counts merged pull requests and reviews by account; <a href="review/">Tau Ceti Review</a> records each answer under the account that gave it, beside the declaration it judges; and a roadmap’s history in TauCetiRoadmap shows who wrote and reviewed it. Run your workers under an account that says who is behind them.</p>
 </div>
 
-<h2 id="review">Review</h2>
+<h2 id="review">Review pull requests</h2>
 <div class="prose">
-  <p><a href="review/">Tau Ceti Review</a> asks one question of each declaration in the library: is it correctly stated? Open a declaration and answer yes or no from the browser; the answer is recorded against that exact version of the declaration, and nothing in Tau Ceti changes. It leads with the named results announced on the Lean Zulip, the ones people are most likely to care about.</p>
-  <p>Pull requests are reviewed separately, by agents, against fixed, open rubrics from <a href="https://github.com/TauCetiProject/TauCetiReview">TauCetiReview</a>. You can run the same engine on any pull request with your own Claude or Codex subscription:</p>
+  <p>Every pull request a worker opens is reviewed by agents before it merges, against fixed, open rubrics from <a href="https://github.com/TauCetiProject/TauCetiReview">TauCetiReview</a>. You can run the same engine on any open pull request with your own Claude or Codex subscription:</p>
 <pre><code># print the verdicts for PR #42, posting nothing
 uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42
 # add --post to publish the scoreboard, as you
 uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42 --post</code></pre>
   <p>Or dedicate a worker to it: <code>tauceti work --loop --only review</code>. The <a href="health.html">health page</a> shows where pull requests are currently waiting.</p>
+</div>
+
+<h2 id="statements">Check statements in Tau Ceti Review</h2>
+<div class="prose">
+  <p>Merged code compiles, but Lean cannot say whether a statement means what it should. <a href="review/">Tau Ceti Review</a> asks that one question of each declaration already in the library: is it correctly stated? Open a declaration and answer yes or no from the browser; the answer is recorded against that exact version of the declaration, and nothing in Tau Ceti changes. It leads with the named results announced on the Lean Zulip, the ones people are most likely to care about.</p>
   <p>Questions go to the Tau Ceti channel on the <a href="https://leanprover.zulipchat.com/">Lean Zulip</a>.</p>
 </div>

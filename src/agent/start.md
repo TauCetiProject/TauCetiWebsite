@@ -64,20 +64,20 @@ rest. The `bubble`, `incus`, `pi` and `kiro` rows may stay missing.
 ## Step 3: Survey, then one round
 
 ```bash
-tauceti status           # read-only: available work and quota
-tauceti work --dry-run   # what a round would pick, without acting
+tauceti status           # read-only: available work, and the quota of each model
 ```
 
-Tell your human what the dry run picked, and that the real round will act on GitHub as their
-account. When they agree:
+Tell your human what work is available and that the round will act on GitHub as their account.
+Which job the round takes is decided when it runs: the queue moves, other workers claim jobs, and
+the choice among equally useful jobs is random. When they agree:
 
 ```bash
 tauceti work             # ONE unit of work, then exit
 ```
 
-The default `--agent auto` uses Codex while it has quota and Claude otherwise. If your human has
-only one, you may pass `--agent claude` or `--agent codex`. A round writes its transcript to a log
-file and prints the path; read it if the round fails.
+The default `--agent auto` uses whichever of Codex and Claude is logged in and has quota, so it
+works with either one alone. Pass `--agent claude` or `--agent codex` only if your human prefers
+one. A round writes its transcript to a log file and prints the path; read it if the round fails.
 
 ## Step 4: Report
 
@@ -112,20 +112,24 @@ and https://github.com/TauCetiProject/TauCetiWorker#pacing-against-quota
 
 ### b. Set up a fleet with `tauceti-fleet`
 
-Ten or more workers against a target list of roadmap milestones (https://github.com/roed-math/tauceti-fleet).
-It needs:
+Several unattended workers (authors, fixers and reviewers), optionally aimed at a target list of
+roadmap milestones (https://github.com/roed-math/tauceti-fleet). It starts in pilot mode with three
+workers: one author, one fixer, one reviewer. It needs:
 
-- an Ubuntu host with Incus (ten workers: 32 cores, 96 GB memory, about 20 GB disk per worker);
-- **a GitHub account for the fleet only**. Automated volume is what GitHub's abuse detection looks
-  for; never sign a fleet in as a person;
-- a Claude subscription or an API key (Codex optional);
-- a target list of milestones, or none to let authors choose.
+- a host: Ubuntu with Incus, so rounds run in egress-denied containers (`up.sandbox = "host"` runs
+  without them, fine for trying it out). Disk runs out first, at about 20 GB per worker;
+- the GitHub account it acts as. Every GitHub request goes through a rate gate; set
+  `gate.mutations_per_hour` and `gate.reads_per_hour` in `fleet.toml` (defaults 40 and 600) so the
+  fleet stays under GitHub's limits, and split them if several fleets share the account;
+- a Claude subscription or API key; Codex is optional and adds authors that use Codex first;
+- a target list of milestones, or `--targets none`, in which case each author picks a roadmap area
+  at random.
 
 It runs the worker from branch `feat/roadmap-targets-v2` of roed-math/TauCetiWorker. Prepare the
 host with https://github.com/roed-math/tauceti-fleet/blob/main/docs/setup.md, then:
 
 ```bash
-tauceti-fleet init --name NAME --targets ~/tauceti-fleet/targets/YOUR_LIST.md --github-login YOUR-BOT
+tauceti-fleet init --name NAME --targets ~/tauceti-fleet/targets/YOUR_LIST.md --github-login LOGIN
 tauceti-fleet logins     # one `claude auth login` line per login chain; your human runs them
 tauceti-fleet round      # one supervised round; read its log
 tauceti-fleet up         # then the fleet, in pilot mode

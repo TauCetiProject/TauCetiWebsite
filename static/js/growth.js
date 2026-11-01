@@ -54,7 +54,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }).catch(function (e) { TC.fail("#authors", e); });
 
   TC.live("progress.json").then(function (p) {
-    TC.$("[data-first-merge]").textContent = TC.dayYear(p.global.first_merge);
     // Drop the week still in progress: a partial count reads as a collapse.
     var cutoff = new Date(p.cutoff).getTime(), weeks = p.weeks.slice(), counts = p.global.weekly.slice();
     while (weeks.length && new Date(weeks[weeks.length - 1] + "T00:00:00Z").getTime() + 7 * 864e5 > cutoff) { weeks.pop(); counts.pop(); }

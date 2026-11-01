@@ -232,9 +232,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // Layers.
     TC.$("#rm-strip").replaceChildren(segments(r));
     var rem = (r.assessment || {}).remaining || {};
-    TC.$("#layers-sub").textContent = n
-      ? "The headings of the README, shaded by what the latest report says of each."
+    var layersSub = n ? ""
       : r.completed ? "Archived as complete." : kids.length ? "An umbrella roadmap: its layers are in the sub-roadmaps below." : "The README names no layers.";
+    TC.$("#layers-sub").textContent = layersSub;
+    TC.$("#layers-sub").hidden = !layersSub;
     if (!n && !r.completed) TC.$("#rm-strip").hidden = TC.$(".rm-legend").hidden = true;
     TC.$("#rm-layers").replaceChildren.apply(TC.$("#rm-layers"), r.layers.map(function (l, i) {
       var s = r.completed ? "done" : r.states[i];
@@ -277,5 +278,16 @@ document.addEventListener("DOMContentLoaded", function () {
   var prs = TC.local("roadmap-prs.json").catch(function () { return null; });
   Promise.all([TC.live("progress.json"), areas, prs]).then(function (res) {
     render(res[0], res[1], res[2]);
+    var row = res[0].rows.filter(function (x) { return x.id === ID; })[0];
+    // A completed roadmap's headline declaration (examples.html has them all).
+    if (row) TC.local("roadmap-examples.json").then(function (ex) {
+      var e = ex.examples.filter(function (x) { return "Completed/" + x.roadmap === row.id || x.roadmap === row.id; })[0];
+      if (!e) return;
+      var card = TC.exampleCard(e, null);
+      card.querySelector("p.small.muted").remove();
+      card.querySelector("h3").before(TC.el("p", { class: "eyebrow", text: "Example" }));
+      card.append(TC.el("p", { class: "small" }, [TC.el("a", { href: "examples.html", text: "A result from every completed roadmap →" })]));
+      TC.$("#rm-example").replaceChildren(card);
+    }).catch(function (e) { console.error(e); });
   }).catch(function (e) { TC.fail("#rm-missing", e); });
 });

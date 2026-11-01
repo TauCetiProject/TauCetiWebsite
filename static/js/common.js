@@ -361,6 +361,45 @@
   }
   /* Wraps pre in a .codeblock holding the button, so the button stays put while a long line scrolls.
      Returns the wrapper, which a caller building pre off-document inserts in its place. */
+  /* One headline declaration (data/roadmap-examples.json) as a Lean header: its arguments filled into lines of
+     at most WIDTH characters, its type on the next, both linked into the API docs as the docs link them.
+     The args and type are HTML the build sanitised to text, <a href> and nothing else. */
+  TC.exampleBlock = function (e) {
+    var WIDTH = 92, probe = document.createElement("span");
+    function len(h) { probe.innerHTML = h; return probe.textContent.length; }
+    var lines = ['<span class="kw">' + TC.esc(e.kind) + "</span> " + TC.esc(e.name)], width = len(lines[0]);
+    e.args.forEach(function (a) {
+      var w = len(a);
+      if (width + 1 + w > WIDTH) { lines.push("    " + a); width = 4 + w; }
+      else { lines[lines.length - 1] += " " + a; width += 1 + w; }
+    });
+    lines[lines.length - 1] += " :";
+    var body = lines.join("\n") + "\n    " + e.type.split("\n").join("\n    ");
+    var pre = TC.el("pre", { class: "lean sig" }), code = TC.el("code");
+    code.innerHTML = body;
+    pre.append(code);
+    return TC.copyable(pre);
+  };
+  // The example as a panel: the result's name, the roadmap it completes (row: its progress.json row, if known),
+  // what it says, the statement, and where to find it.
+  TC.exampleCard = function (e, row) {
+    var title = row && row.title ? row.title.charAt(0).toUpperCase() + row.title.slice(1) : e.roadmap;
+    var from = row && row.id
+      ? TC.el("a", { href: "roadmap.html?id=" + encodeURIComponent(row.id), text: title })
+      : document.createTextNode(title);
+    var links = [TC.el("a", { href: e.docs, text: "Documentation" })];
+    if (e.source) links.push(document.createTextNode(" · "), TC.el("a", { href: e.source, text: "Source" }));
+    links.push(document.createTextNode(" · "), TC.el("code", { text: "import " + e.module }));
+    return TC.el("div", { class: "panel example", id: "ex-" + e.roadmap }, [
+      TC.el("h3", { text: e.title }),
+      TC.el("p", { class: "small muted" }, [document.createTextNode("From the roadmap "), from]),
+      TC.el("p", { text: e.summary }),
+      TC.exampleBlock(e),
+      TC.el("p", { class: "small ex-links" }, links),
+    ]);
+  };
+  TC.esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+
   TC.copyable = function (pre) {
     if (pre.parentNode && pre.parentNode.classList && pre.parentNode.classList.contains("codeblock")) return pre.parentNode;
     var wrap = TC.el("div", { class: "codeblock" });

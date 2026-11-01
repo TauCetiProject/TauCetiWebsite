@@ -265,8 +265,8 @@ ol.steps > li > h3 { margin: 0.15rem 0 0.3rem; }
 @media (max-width: 640px) { .rm > summary { grid-template-columns: 1fr; gap: 0.25rem; } .rm .rm-meta { text-align: left; } }
 
 /* ---- people ---- */
-.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.8rem; margin: 1rem 0; }
-.person { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 0.9rem 1rem; }
+.people { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin: 1rem 0; }
+.person { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 0.8rem 0.85rem; min-width: 0; }
 .person .nm { font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
 .person .af { color: var(--muted); font-size: 0.86rem; }
 
@@ -363,3 +363,14 @@ details.faq > summary:focus-visible { outline: 2px solid var(--link); outline-of
 details.faq > .prose { padding: 0 0.3rem 0.6rem 1.2rem; color: var(--text-2); }
 #rm-title { overflow-wrap: anywhere; }
 #recent-sub, #weekly-sub { overflow-wrap: anywhere; }
+
+/* ---- examples ---- */
+.cards.three { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 980px) { .cards.three { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .cards.three { grid-template-columns: 1fr; } }
+.example { margin: 1rem 0; }
+.example .eyebrow { margin: 0 0 0.2rem; }
+pre.sig a { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+pre.sig a:hover { color: var(--link); }
+.ex-links { margin: 0.5rem 0 0; color: var(--muted); }
+.ex-links code { font-size: 0.8rem; overflow-wrap: anywhere; }

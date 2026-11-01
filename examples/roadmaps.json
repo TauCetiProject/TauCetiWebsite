@@ -1,0 +1,231 @@
+[
+ {
+  "roadmap": "AdicSpaces",
+  "decl": "TauCeti.Huber.isSheafyRing_of_isStronglyNoetherian",
+  "module": "TauCeti.AlgebraicGeometry.AdicSpace.Spa.StructurePresheaf.StronglyNoetherian",
+  "title": "Tate acyclicity for strongly noetherian Tate rings",
+  "summary": "Every strongly noetherian Tate ring is sheafy: the structure presheaf on Spa(A, A⁺) is a sheaf for every ring of integral elements A⁺ (Huber; Wedhorn, Theorem 8.28(b)).",
+  "note": "The roadmap's final application, the adic Fargues–Fontaine curve, is in TauCeti.AlgebraicGeometry.AdicSpace.FarguesFontaine.Adic (isSheaf_spaYPresheaf, isAdic_spaXPreAdicSpace), but its statements carry setup hypotheses and are less readable."
+ },
+ {
+  "roadmap": "AlgebraicCodingTheory",
+  "decl": "Submodule.natCard_mul_weightEnumerator_euclideanDual",
+  "module": "TauCeti.InformationTheory.Coding.MacWilliams.Basic",
+  "title": "The MacWilliams identity",
+  "summary": "For a linear code C over a finite field with q elements, #C · W_{C⊥}(X, Y) = W_C(X + (q − 1)Y, X − Y), where W denotes the homogeneous Hamming weight enumerator.",
+  "note": "Lives in the root namespace Submodule (no TauCeti prefix)."
+ },
+ {
+  "roadmap": "AnalyticToricGeometry",
+  "decl": "TauCeti.Toric.Fan.compactSpace_analyticRealization_iff_isComplete",
+  "module": "TauCeti.Geometry.Toric.Analytic.Fan.Compact",
+  "title": "Compact toric manifolds come from complete fans",
+  "summary": "For a nonempty finite regular fan, the associated complex toric manifold is compact if and only if the fan is complete."
+ },
+ {
+  "roadmap": "ArithmeticDirichletSeries",
+  "decl": "TauCeti.primeIdealTheorem",
+  "module": "TauCeti.NumberTheory.ArithmeticDirichletSeries.Prime.PrimeIdealTheorem",
+  "title": "The prime ideal theorem",
+  "summary": "For a number field K, Chebyshev's functions satisfy ψ_K(x) ~ x and ϑ_K(x) ~ x, and the number of prime ideals of norm at most x is asymptotic to Li(x).",
+  "note": "The roadmap itself owns the Tauberian side (TauCeti.LSeries.wienerIkehara in TauCeti.NumberTheory.LSeries.WienerIkehara.SharpCutoff, and the conditional primeIdealTheorem_of_boundary); this unconditional theorem plugs in the Dedekind-zeta boundary input from the LFunctions roadmap."
+ },
+ {
+  "roadmap": "Chebotarev",
+  "decl": "NumberField.Chebotarev.hasNaturalDensity_frobeniusPrimeSet",
+  "module": "TauCeti.NumberTheory.Chebotarev.PrimeCounting.FrobeniusPrimeCount",
+  "title": "The Chebotarev density theorem",
+  "summary": "For a finite Galois extension L/K of number fields and a conjugacy class C of Gal(L/K), the primes of K whose Frobenius class is C have natural density #C/#Gal(L/K).",
+  "note": "Root namespace NumberField.Chebotarev (no TauCeti prefix). Same file also has frobeniusPrimeCount_isEquivalent_logIntegral (π_C(x) ~ (#C/#G) Li(x)); the Dirichlet-density form is hasDirichletDensity_frobeniusPrimeSet in ...Chebotarev.Density.Chebotarev."
+ },
+ {
+  "roadmap": "ConformalMapping",
+  "decl": "TauCeti.riemannMapping",
+  "module": "TauCeti.Analysis.Complex.Conformal.RiemannMapping.Existence",
+  "title": "The Riemann mapping theorem",
+  "summary": "A simply connected open proper subset of ℂ admits a holomorphic bijection onto the open unit disc with nowhere-vanishing derivative."
+ },
+ {
+  "roadmap": "ContourIntegration",
+  "decl": "TauCeti.Contour.hungerbuhlerWasem_residueTheorem_of_simple_poles",
+  "module": "TauCeti.Analysis.Contour.HungerbuhlerWasem",
+  "title": "The Hungerbühler–Wasem generalized residue theorem",
+  "summary": "If f is holomorphic on U minus a finite set S of at most simple poles and γ is a closed, null-homologous, piecewise C¹ immersion in U, possibly passing through the poles, then the principal value of ∮_γ f equals 2πi Σ_{s∈S} n_s(γ) Res_s f, where n_s(γ) is the generalized (possibly non-integer) winding number.",
+  "note": "Simple-pole form chosen because it has no extra hypotheses. The full HW Theorem 3.3 for arbitrary meromorphic singularities is TauCeti.Contour.hungerbuhlerWasem_residueTheorem in the same file, which needs regularity conditions (A′) and (B) as hypotheses."
+ },
+ {
+  "roadmap": "DenseGraphLimits",
+  "decl": "TauCeti.DenseGraphLimits.tendsto_graphonSpace_iff_forall_homDensity",
+  "module": "TauCeti.Combinatorics.DenseGraphLimits.GraphonSpace.Convergence",
+  "title": "Cut-distance convergence is convergence of homomorphism densities",
+  "summary": "A sequence of graphons converges in cut distance if and only if, for every finite simple graph F, its homomorphism densities t(F, ·) converge to that of the limit.",
+  "note": "Other milestones: Lovász–Szegedy compactness is the instance GraphonSpaceI.instCompactSpace (TauCeti.Combinatorics.DenseGraphLimits.GraphonSpace.Compact)."
+ },
+ {
+  "roadmap": "EffectiveBounds",
+  "decl": "NumberField.ncard_setOf_finiteDimensional_abs_discr_le_le",
+  "module": "TauCeti.NumberTheory.EffectiveBounds.HermiteCount.Basic",
+  "title": "Effective Hermite–Minkowski theorem",
+  "summary": "Inside a fixed extension of ℚ, the number of number fields with |discriminant| ≤ N is at most (2C + 1)^(D + 1) · D, where D and C are explicit degree and coefficient bounds depending only on N.",
+  "note": "Root namespace NumberField (no TauCeti prefix). The bound is stated via the named constants rankOfDiscrBdd N (Mathlib) and coeffBoundOfDiscrBdd N."
+ },
+ {
+  "roadmap": "Exchangeability",
+  "decl": "TauCeti.Probability.deFinetti",
+  "module": "TauCeti.Probability.DeFinetti.Theorem",
+  "title": "De Finetti's theorem",
+  "summary": "An exchangeable sequence of random variables with values in a nonempty standard Borel space is conditionally i.i.d.",
+  "note": "The same file has deFinetti_RyllNardzewski_equivalence (contractable ↔ exchangeable ∧ conditionally i.i.d.), the roadmap's stated v1 end goal."
+ },
+ {
+  "roadmap": "GlobalNumberFields",
+  "decl": "TauCeti.GlobalNumberFields.IdeleClassGroup.isCompact_normOne",
+  "module": "TauCeti.NumberTheory.NumberField.Global.Ideles.Norm.Compact",
+  "title": "Compactness of the norm-one idele class group",
+  "summary": "For a number field K, the subgroup of norm-one elements of the idele class group of K is compact.",
+  "note": "This roadmap is a broad foundation without a single capstone; alternatives are weakApproximation_denseRange (Artin–Whaples) and finprod_normAbs_eq_one (product formula) in the same namespace."
+ },
+ {
+  "roadmap": "HeightsAndUnits",
+  "decl": "TauCeti.finrank_sUnits_numberField",
+  "module": "TauCeti.NumberTheory.NumberField.Units.SUnit.Basic",
+  "title": "Dirichlet's S-unit theorem",
+  "summary": "For a number field F and a finite set S of finite places, the S-unit group has rank r₁ + r₂ − 1 + #S.",
+  "note": "The roadmap's own emphasis is the heights-units dictionary (e.g. regulator bounds); the S-unit theorem is its classical named result, and COMPLETION.md names this declaration as the realization."
+ },
+ {
+  "roadmap": "HodgeStructures",
+  "decl": "TauCeti.Hodge.exists_finset_isAtom_sup_eq_top",
+  "module": "TauCeti.Geometry.Hodge.Semisimple",
+  "title": "Semisimplicity of polarizable Hodge structures",
+  "summary": "A polarizable pure Hodge structure on a finite-dimensional rational vector space is a finite direct sum of simple rational Hodge substructures.",
+  "note": "Categorical form: TauCeti.Hodge.PolarizableHodgeStructureCat.exists_iso_biproduct_simple in the same file. The mixed-theory summit (Deligne strictness) was not located as a single named theorem."
+ },
+ {
+  "roadmap": "HopfRinow",
+  "decl": "TauCeti.Manifold.tfae_expDomain_eq_univ",
+  "module": "TauCeti.Geometry.Manifold.Riemannian.Geodesic.HopfRinow",
+  "title": "The Hopf–Rinow theorem",
+  "summary": "For a point p of a Riemannian manifold M whose metric is the Riemannian distance, the following are equivalent: exp_p is defined on all of T_pM; closed bounded sets are compact; M is metrically complete; every geodesic extends for all time; M has a compact exhaustion with distance from p tending to infinity off it.",
+  "note": "Stated as a List.TFAE of five conditions."
+ },
+ {
+  "roadmap": "InfinitaryLogic",
+  "decl": "TauCeti.scott_isomorphism",
+  "module": "TauCeti.ModelTheory.Scott.Isomorphism",
+  "title": "Scott's isomorphism theorem",
+  "summary": "In a countable relational language, every countable structure M has an L_{ω₁ω} sentence that holds in a countable structure exactly when that structure is isomorphic to M."
+ },
+ {
+  "roadmap": "IntegralLattices",
+  "decl": "TauCeti.IntegralLattice.isUnimodular_ofIsotropicSubgroup_iff_isLagrangian",
+  "module": "TauCeti.LinearAlgebra.IntegralLattice.Overlattice.Dual",
+  "title": "Unimodular gluing criterion",
+  "summary": "For an even lattice L and an isotropic subgroup H of its discriminant group, the even overlattice obtained by gluing along H is unimodular if and only if H equals its own orthogonal complement.",
+  "note": "The D₈⁺ ≅ E₈ glue calculation is a def, TauCeti.IntegralLattice.typeE₈IsometryD8Plus (TauCeti.LinearAlgebra.IntegralLattice.RootLattice.D8Plus.Isometry), not a theorem."
+ },
+ {
+  "roadmap": "LocalFieldsRamification",
+  "decl": "TauCeti.LocalFieldsRamification.hasseArf",
+  "module": "TauCeti.NumberTheory.LocalField.Herbrand.HasseArf.Abelian",
+  "title": "The Hasse–Arf theorem",
+  "summary": "Every upper ramification break of a finite abelian Galois extension of nonarchimedean local fields is an integer."
+ },
+ {
+  "roadmap": "LocalGaloisGroups",
+  "decl": "TauCeti.isDemushkin_absoluteGaloisGroupProP_of_mu",
+  "module": "TauCeti.NumberTheory.LocalField.ProP.Demushkin",
+  "title": "Demushkin's theorem for local fields",
+  "summary": "If a nonarchimedean local field K contains a primitive p-th root of unity, then the maximal pro-p quotient G_K(p) of its absolute Galois group is a Demushkin group."
+ },
+ {
+  "roadmap": "Multiquadratic",
+  "decl": "TauCeti.Multiquadratic.narrowTwoRank_eq_ncard_ramifiedPrimes_sub_one",
+  "module": "TauCeti.NumberTheory.Multiquadratic.Quadratic.TwoRank",
+  "title": "Gauss's genus theory: the 2-rank of the narrow class group",
+  "summary": "For a quadratic field ℚ(√d) with d squarefree, real or imaginary, the 2-rank of the narrow class group is t − 1, where t is the number of rational primes that ramify."
+ },
+ {
+  "roadmap": "NumberFieldArithmetic",
+  "decl": "TauCeti.NumberField.exists_gal_fullCycleType_eq_factorizationType",
+  "module": "TauCeti.NumberTheory.NumberField.Frobenius.CycleType",
+  "title": "Dedekind's theorem on factorization modulo p",
+  "summary": "If a prime p does not divide the discriminant of a monic integer polynomial f, then some element of the Galois group of f over ℚ permutes the roots of f with cycle lengths equal to the degrees of the irreducible factors of f modulo p.",
+  "note": "STATUS.md links the Frobenius form factorizationType_eq_cycleType_isArithFrobAt (same file); this is the polynomial form, whose statement is shorter."
+ },
+ {
+  "roadmap": "OneParameterSemigroups",
+  "decl": "TauCeti.Semigroups.hilleYosida_generation_iff",
+  "module": "TauCeti.Analysis.Semigroups.Generation.HilleYosida.Generation",
+  "title": "The Hille–Yosida theorem",
+  "summary": "An operator A on a real Banach space generates a C₀ semigroup with ‖S(t)‖ ≤ M e^{ωt} if and only if M ≥ 1, A is densely defined, (ω, ∞) lies in its resolvent set, and ‖R(λ, A)ⁿ‖ ≤ M/(λ − ω)ⁿ for all n ≥ 1 and λ > ω."
+ },
+ {
+  "roadmap": "OrthogonalL2Bases",
+  "decl": "TauCeti.hasSum_hermiteFunctionLp_expansion",
+  "module": "TauCeti.Analysis.SpecialFunctions.Hermite.Function.Parseval",
+  "title": "The Hermite expansion in L²(ℝ)",
+  "summary": "Every f ∈ L²(ℝ) is the sum, convergent in L², of its Hermite series ∑ₙ ⟨ψₙ, f⟩ ψₙ, where ψₙ are the Hermite functions.",
+  "note": "The Hilbert basis itself is the definition TauCeti.hermiteHilbertBasis (TauCeti.Analysis.SpecialFunctions.Hermite.Function.HilbertBasis); this theorem is its completeness stated without the basis API."
+ },
+ {
+  "roadmap": "OrthogonalSpinGroups",
+  "decl": "CliffordAlgebra.range_spinToSpecialOrthogonal_eq_ker_spinorNorm",
+  "module": "TauCeti.LinearAlgebra.CliffordAlgebra.Spin.SpinorNorm.Basic",
+  "title": "The image of Spin is the kernel of the spinor norm",
+  "summary": "For a nondegenerate quadratic form Q on a finite-dimensional space over a field of characteristic not two, the image of Spin(Q) → SO(Q) is exactly the kernel of the spinor norm.",
+  "note": "Declared in namespace CliffordAlgebra, not TauCeti."
+ },
+ {
+  "roadmap": "PeripheralActions",
+  "decl": "TauCeti.Peripheral.exists_peripheralAut",
+  "module": "TauCeti.Topology.Algebra.Group.Profinite.Free.Peripheral.Automorphism",
+  "title": "The peripheral-power theorem",
+  "summary": "For every p-adic unit u, a free pro-p group of finite rank with basis x₁, …, x_r has a continuous automorphism sending each xᵢ and the cusp (x₁⋯x_r)⁻¹ to a conjugate of its u-th power, with x₁ sent to x₁^u exactly."
+ },
+ {
+  "roadmap": "PolynomialGaloisGroups",
+  "decl": "TauCeti.exists_monic_int_polynomial_hasFullSymmetricGaloisGroup",
+  "module": "TauCeti.FieldTheory.GaloisGroups.Symmetric.Realization",
+  "title": "Sₙ is a Galois group over ℚ",
+  "summary": "For every n ≥ 1 there is a monic integer polynomial of degree n, irreducible over ℚ, whose Galois group over ℚ is the full symmetric group Sₙ."
+ },
+ {
+  "roadmap": "ProfiniteArithmetic",
+  "decl": "TauCeti.IsProP.isProP_ker_mapQuotient_proPFrattini",
+  "module": "TauCeti.Topology.Algebra.Group.ContinuousAut.ProP",
+  "title": "Automorphisms trivial on the Frattini quotient form a pro-p group",
+  "summary": "For a compact pro-p group G, the continuous automorphisms of G acting trivially on its Frattini quotient form a pro-p group in the congruence topology.",
+  "note": "Together with TauCeti.ContinuousAut.isOpen_ker_mapQuotient_proPFrattini (same file) this gives that ContinuousAut G is virtually pro-p for finitely generated G; no single declaration states that. The ẑ ≃ ∏ℓ ℤ_ℓ decomposition is a definition (TauCeti.zHat.ringEquivPiPadicInt)."
+ },
+ {
+  "roadmap": "ProfiniteProPGroups",
+  "decl": "TauCeti.IsDemushkin.nonempty_continuousMulEquiv_iff",
+  "module": "TauCeti.Topology.Algebra.Group.Profinite.Demushkin.NormalForm.Uniqueness",
+  "title": "Labute's classification of Demushkin groups",
+  "summary": "Two Demushkin groups are isomorphic as topological groups if and only if they have the same rank and their canonical characters have the same image."
+ },
+ {
+  "roadmap": "RealAlgebraicGeometry",
+  "decl": "TauCeti.exists_isCAD_signInvariant",
+  "module": "TauCeti.Geometry.RealAlgebraic.CAD.Existence",
+  "title": "Existence of cylindrical algebraic decompositions",
+  "summary": "For every finite set of real polynomials in n variables there is a cylindrical algebraic decomposition of ℝⁿ on each cell of which every one of the polynomials has constant sign.",
+  "note": "The Tarski–Seidenberg theorem is proved from this in the same file, but as an anonymous instance `HasSemialgebraicProjections ℝ`, not a named theorem."
+ },
+ {
+  "roadmap": "RestrictedProducts",
+  "decl": "TauCeti.restrictedProductMap_surjective_iff",
+  "module": "TauCeti.Topology.Algebra.RestrictedProduct.Map",
+  "title": "Surjectivity criterion for maps of restricted products",
+  "summary": "A componentwise homomorphism of restricted products of groups is surjective if and only if every coordinate map is surjective and, at all but finitely many indices, it carries the source reference subgroup onto the target one.",
+  "note": "STATUS.md lists the away-S decomposition first, but it is a definition (TauCeti.awayDecomposition)."
+ },
+ {
+  "roadmap": "UniversalCovers",
+  "decl": "TauCeti.UniversalCover.existsUnique_subgroup_homeomorph_subgroupQuotient",
+  "module": "TauCeti.AlgebraicTopology.UniversalCover.Classification.Bijection",
+  "title": "The Galois correspondence for covering spaces",
+  "summary": "For X locally path-connected and semilocally simply connected, every path-connected pointed cover of (X, x₀) is isomorphic over X, compatibly with basepoints, to the quotient of the universal cover by exactly one subgroup of π₁(X, x₀)."
+ }
+]

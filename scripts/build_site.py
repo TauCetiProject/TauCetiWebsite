@@ -28,11 +28,12 @@ ROOT = Path(__file__).resolve().parent.parent
 # dropdown. Every page in src/pages is built; the footer links the same pages.
 NAV = [
     ("Home", "index.html"),
-    ("Library", [("Overview", "contents.html"), ("Roadmaps", "structure.html"), ("Atlas", "atlas/"),
+    ("Library", [("Overview", "contents.html"), ("Roadmaps", "structure.html"), ("Examples", "examples.html"), ("Atlas", "atlas/"),
                  ("Review", "review/"), ("API docs", "https://taucetiproject.org/docs/")]),
     ("Contribute", [("Start in one paste", "contribute.html#start"), ("Run a worker", "contribute.html#worker"),
                     ("Run a fleet", "contribute.html#fleet"), ("Shape the roadmaps", "contribute.html#roadmap"),
-                    ("Review pull requests", "contribute.html#review")]),
+                    ("Review pull requests", "contribute.html#review"),
+                         ("Check statements", "contribute.html#statements")]),
     ("Project", [("Growth", "growth.html"), ("People", "people.html"), ("Health", "health.html"),
                  ("Acknowledgments", "acknowledgments.html")]),
     ("FAQ", "faq.html"),

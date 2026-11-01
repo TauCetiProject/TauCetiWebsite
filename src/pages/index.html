@@ -1,4 +1,4 @@
-<!-- {"title": "Tau Ceti", "description": "Open, AI-authored, scalable mathematics library in Lean, built on Mathlib and aiming to include all areas of mathematics.", "scripts": ["counts.js", "home.js"], "data": ["data/library-counts.json", "live:roadmap-completion.json", "live:progress.json", "data/examples.json"]} -->
+<!-- {"title": "Tau Ceti", "description": "Open, AI-authored, scalable mathematics library in Lean, built on Mathlib and aiming to include all areas of mathematics.", "scripts": ["counts.js", "home.js"], "data": ["data/library-counts.json", "live:roadmap-completion.json", "live:progress.json"]} -->
 <section class="hero">
   <div>
     <h1>Tau Ceti</h1>
@@ -47,7 +47,7 @@
 <h2>Why it matters</h2>
 <div class="prose">
   <p>AI can make dramatic progress in mathematics, and formalization is now clearly an essential companion to it: the Lean kernel gives feedback during proof exploration and guarantees that the final result is correct. Yet many AI-driven research projects have had to build things from scratch, doing extensive foundational work (often just to state the problem) before they can make new discoveries.</p>
-  <p>Tau Ceti collects that foundation in one place, solid and well engineered, so that humans and agents can build on it when they explore the research frontier. It depends on Mathlib and defers to Mathlib’s design decisions, and everything in it is free to reuse under the Apache licence.</p>
+  <p>Tau Ceti collects that foundation in one place, solid and well engineered, so that humans and agents can build on it when they explore the research frontier. It depends on Mathlib and defers to Mathlib’s design decisions, and everything in it is free to reuse under the <a href="https://github.com/TauCetiProject/TauCeti/blob/main/LICENSE">Apache licence</a>.</p>
 </div>
 
 <h2 id="use">Use it from Lean</h2>
@@ -76,14 +76,10 @@ lake build</code></pre>
   </li>
   <li>
     <h3>Import the modules you need</h3>
-    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules. Find them in the <a href="https://taucetiproject.org/docs/">API documentation</a> or the <a href="atlas/tauceti/">Atlas</a>:</p>
-    <pre><code data-imports>import TauCeti.RepresentationTheory.CharacterTable.Solvable</code></pre>
+    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules; find them in the <a href="https://taucetiproject.org/docs/">API documentation</a> or the <a href="atlas/tauceti/">Atlas</a>. For example:</p>
+    <pre><code>import TauCeti.RepresentationTheory.CharacterTable.Solvable</code></pre>
   </li>
 </ol>
-
-<h2>A taste of the maths</h2>
-<p class="prose muted">These statements are type-checked against the library every time <a href="https://taucetiproject.org/">taucetiproject.org</a> is built (from <a data-examples-source href="https://github.com/TauCetiProject/TauCeti/blob/main/web/examples/Examples.lean">web/examples/Examples.lean</a>).</p>
-<div class="examples" id="examples"><p class="muted">Loading…</p></div>
 
 <div class="callout teal" style="margin-top:2rem">
   Tau Ceti is incubated by the <a href="https://lean-lang.org/fro/">Lean FRO</a> and the <a href="https://mathlib-initiative.org/">Mathlib Initiative</a>, in partnership with academic and industry groups. See <a href="people.html">people</a> and <a href="acknowledgments.html">acknowledgments</a>.

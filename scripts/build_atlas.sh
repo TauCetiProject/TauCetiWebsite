@@ -42,5 +42,5 @@ python3 scripts/build.py --tauceti > /dev/null
 mkdir -p "$OUT/tauceti"
 cp index.html definitions.html "$OUT/"
 cp tauceti/index.html tauceti/areas.json "$OUT/tauceti/"
-python3 "$HERE/scripts/atlas_back.py" "$OUT"
+python3 "$HERE/scripts/atlas_nav.py" "$OUT"
 echo "built the atlas into $OUT"

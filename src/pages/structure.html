@@ -2,10 +2,10 @@
 <div data-overview>
 <p class="eyebrow">Structure and progress</p>
 <h1>From roadmap to merged Lean</h1>
-<p class="lede">Tau Ceti is four repositories and one loop. Humans decide what to formalize; agents write and review it; Lean decides whether it is correct.</p>
+<p class="lede">Tau Ceti is four repositories and one loop. Humans decide what to formalize; agents plan it, write it and review it; Lean decides whether it is correct.</p>
 
 <div class="pipeline" aria-label="The Tau Ceti pipeline">
-  <div class="stage"><div class="who">Humans</div><h4>Roadmap</h4><p>A mathematician writes a roadmap in <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a>: an area in layers, with key statements in Lean. Humans review it.</p></div>
+  <div class="stage"><div class="who">Agents, steered by humans</div><h4>Roadmap</h4><p>Humans request a topic on the <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs">job board</a>. <a href="https://github.com/TauCetiProject/TauCetiRoadmapWorker">Roadmap workers</a> draft it for <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a>: an area in layers, with key statements in Lean. Humans review it before it merges.</p></div>
   <div class="stage"><div class="who">Agents</div><h4>Worker</h4><p>A <a href="https://github.com/TauCetiProject/TauCetiWorker">worker</a> claims a milestone, writes the Lean with its model, and opens a pull request labelled with the roadmap.</p></div>
   <div class="stage machine"><div class="who">Lean</div><h4>CI</h4><p>The build must pass: no <code>sorry</code>, no new axioms, the full Mathlib linter set, file-size and scope checks.</p></div>
   <div class="stage"><div class="who">Agents</div><h4>Review</h4><p>Reviewers judge it against the <a href="https://github.com/TauCetiProject/TauCetiReview">rubrics</a>. Requested changes go back to the author’s worker.</p></div>
@@ -15,9 +15,9 @@
 
 <div class="panel shape-panel">
   <h3>Shape the roadmaps</h3>
-  <p class="sub">The roadmaps are where people decide what Tau Ceti becomes. Three ways in:</p>
+  <p class="sub">Agents draft the roadmaps; people decide which ones get drafted and whether they merge. Three ways in:</p>
   <div class="cards">
-    <a class="card" href="https://leanprover.zulipchat.com/#narrow/channel/610393-Tau-Ceti/topic/Getting.20started.3A.20roadmaps/with/614905192"><h3>Request a roadmap</h3><p>Say what you want formalized, why it matters and your sources. It becomes a Target on the job board, and roadmap workers draft it for human review.</p><span class="arrow">Ask on Zulip →</span></a>
+    <a class="card" href="https://github.com/TauCetiProject/TauCetiRoadmapJobs/issues/new/choose"><h3>Request a roadmap</h3><p>File a Target on the roadmap job board: what you want formalized, why it matters, and your sources. Roadmap workers triage it, draft the roadmap and open it for human review.</p><span class="arrow">Open the job board →</span></a>
     <a class="card" href="https://github.com/TauCetiProject/TauCetiRoadmap/pulls"><h3>Review a roadmap</h3><p>Every roadmap merges only after human review. Is the scope right, are these the right statements, are the sources sound?</p><span class="arrow">Open roadmap pull requests →</span></a>
     <a class="card" href="contribute.html#roadmap"><h3>Run a roadmap worker</h3><p>Put your own subscription to work drafting and cross-reviewing roadmaps from the job board.</p><span class="arrow">How to start →</span></a>
   </div>
@@ -31,7 +31,6 @@
 </div>
 
 <h2 data-overview>Every roadmap</h2>
-<p class="prose" data-overview>Grouped by the arXiv category each roadmap declares; open a category for its own page, divided into the areas the <a href="atlas/tauceti/">Atlas</a> maps it into. Each segment is one layer of the roadmap’s README, shaded by what its latest report says. Expand a roadmap for its summary, next milestones and layer list.</p>
 
 <nav class="area-nav" id="area-nav" aria-label="Areas"></nav>
 

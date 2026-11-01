@@ -6,7 +6,8 @@ Writes into data/ (or --out):
   library-loc.json   lines of Lean under TauCeti/ by day, from the git history of main
   loc-by-topic.json  net lines per roadmap and per arXiv category, from merged pull requests
   roadmap-prs.json   per roadmap label: merged PRs, net lines and the twelve latest merges
-  examples.json      the showcase theorems from TauCeti's web/examples/Examples.lean
+  roadmap-examples.json  one headline declaration per completed roadmap (examples/roadmaps.json),
+                     its statement as the API docs show it
   ci-current.json    the CI fleet's running and queued jobs, copied from the live manifest
 
 Everything else the pages show (progress.json, pr-stats.json, roadmap-completion.json,
@@ -29,9 +30,12 @@ import os
 import re
 import subprocess
 import sys
+import html
 import urllib.request
 from collections import defaultdict
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urljoin
 
 OWNER, NAME = "TauCetiProject", "TauCeti"
 SITE = "https://taucetiproject.org"
@@ -268,23 +272,102 @@ def library_loc(repo: Path) -> dict:
             "files_now": sum(1 for f in files if f.endswith(".lean"))}
 
 
-EXAMPLE_RE = re.compile(r"^%example (\S+)\n(.*?)^%end", re.S | re.M)
+DOCS = f"{SITE}/docs/"
 
 
-def examples(repo: Path | None) -> dict:
-    path = "web/examples/Examples.lean"
-    if repo and (repo / path).exists():
-        text = (repo / path).read_text()
-    else:
-        text = fetch_text(f"https://raw.githubusercontent.com/{OWNER}/{NAME}/main/{path}")
-    imports = re.findall(r"^import (TauCeti\.\S+)", text, re.M)
+VOID = {"br", "img", "input", "meta", "link", "hr", "wbr", "source", "col", "area", "base", "embed", "param", "track"}
+
+
+class _Tree(HTMLParser):
+    """A doc-gen4 page as nested [tag, attrs, children] lists, text as str children."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.root = ["#root", {}, []]
+        self.open = [self.root]
+
+    def handle_starttag(self, tag, attrs):
+        node = [tag, dict(attrs), []]
+        self.open[-1][2].append(node)
+        if tag not in VOID:
+            self.open.append(node)
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.open) - 1, 0, -1):
+            if self.open[i][0] == tag:
+                del self.open[i:]
+                break
+
+    def handle_data(self, data):
+        self.open[-1][2].append(data)
+
+
+def _nodes(node, pred):
+    if isinstance(node, str):
+        return
+    if pred(node):
+        yield node
+    for c in node[2]:
+        yield from _nodes(c, pred)
+
+
+def _has_class(cls):
+    return lambda n: cls in (n[1].get("class") or "").split()
+
+
+def _text(node) -> str:
+    return node if isinstance(node, str) else "".join(_text(c) for c in node[2])
+
+
+def _clean(node, base: str) -> str:
+    """Escaped text, with <a href> (absolute) and <span> kept; every other element and attribute dropped."""
+    if isinstance(node, str):
+        return html.escape(node, quote=False)
+    inner = "".join(_clean(c, base) for c in node[2])
+    if node[0] == "a" and node[1].get("href"):
+        return f'<a href="{html.escape(urljoin(base, node[1]["href"]))}">{inner}</a>'
+    return inner
+
+
+def _flow(s: str) -> str:
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _type_lines(s: str) -> str:
+    # doc-gen4 keeps the printer's line breaks as runs of spaces: n spaces are a break and n - 1 of indent.
+    s = s.replace("\n", " ")
+    return re.sub(r" {2,}", lambda m: "\n" + " " * (len(m.group(0)) - 1), s).strip()
+
+
+def decl_header(decl: str, module: str) -> dict:
+    url = DOCS + module.replace(".", "/") + ".html"
+    tree = _Tree()
+    tree.feed(fetch_text(url))
+    decl_div = next(_nodes(tree.root, lambda n: n[0] == "div" and n[1].get("id") == decl and _has_class("decl")(n)), None)
+    header = decl_div and next(_nodes(decl_div, _has_class("decl_header")), None)
+    if header is None:
+        raise LookupError(f"{decl} is not on {url}")
+    kind = next(_nodes(header, _has_class("decl_kind")))
+    name = next(_nodes(header, _has_class("decl_name")))
+    args = [_flow(_clean(a, url)) for a in _nodes(header, _has_class("decl_args"))]
+    typ = next(_nodes(header, _has_class("decl_type")), None)
+    source = next((a[1]["href"] for a in _nodes(decl_div, lambda n: n[0] == "a")
+                   if a[1].get("href", "").startswith("https://github.com/")), None)
+    return {"kind": _flow(_text(kind)), "name": _flow(_text(name)), "args": [a for a in args if a and a != ":"],
+            "type": _type_lines(_clean(typ, url)) if typ is not None else "", "docs": url + "#" + decl, "source": source}
+
+
+def roadmap_examples() -> dict:
+    """examples/roadmaps.json, each entry with its declaration's header from the API docs. A declaration the
+    docs do not have (renamed, or newer than the docs) is left out with a warning."""
+    picks = json.loads((Path(__file__).resolve().parent.parent / "examples" / "roadmaps.json").read_text())
     items = []
-    for name, body in EXAMPLE_RE.findall(text):
-        doc = re.search(r"/--\s*(.*?)\s*-/", body, re.S)
-        items.append({"id": name, "code": body.strip("\n"),
-                      "summary": " ".join(doc.group(1).split()) if doc else ""})
-    return {"source": f"https://github.com/{OWNER}/{NAME}/blob/main/{path}",
-            "imports": imports, "examples": items}
+    for e in picks:
+        try:
+            items.append({**e, **decl_header(e["decl"], e["module"])})
+        except Exception as err:
+            log(f"::warning::example for {e['roadmap']}: {err}")
+    return {"generated_at": now_iso(), "docs": DOCS, "examples": items}
 
 
 def ci_current() -> dict:
@@ -327,7 +410,7 @@ def main() -> int:
 
     if args.tauceti_repo:
         step("library-loc", lambda: write(args.out, "library-loc.json", library_loc(args.tauceti_repo)))
-    step("examples", lambda: write(args.out, "examples.json", examples(args.tauceti_repo)))
+    step("roadmap-examples", lambda: write(args.out, "roadmap-examples.json", roadmap_examples()))
     step("ci-current", lambda: write(args.out, "ci-current.json", ci_current()))
     if not args.skip_prs:
         def topics():

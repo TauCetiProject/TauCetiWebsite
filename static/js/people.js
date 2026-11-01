@@ -17,6 +17,20 @@ document.addEventListener("DOMContentLoaded", function () {
     TC.timeChart(sel, { dates: dates, series: series, stacked: true, label: label, updated: updated });
   }
 
+  // taucetiproject.org publishes these counts only inside its chart, in the chart's title and description.
+  fetch(TC.LIVE + "participation.svg").then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.text();
+  }).then(function (text) {
+    var svg = new DOMParser().parseFromString(text, "image/svg+xml");
+    var title = (svg.querySelector("title") || {}).textContent || "", desc = (svg.querySelector("desc") || {}).textContent || "";
+    var total = title.match(/(\d+) people .* as of (\d{4}-\d\d-\d\d)/), repos = [];
+    desc.replace(/(\w+): (\d+)/g, function (_, name, n) { repos.push({ label: name, value: +n, href: "https://github.com/TauCetiProject/" + name }); });
+    if (!total || !repos.length) throw new Error("unexpected chart format");
+    TC.set("people", TC.fmt(+total[1]), "as of " + TC.dayYear(total[2]));
+    TC.bars("#participation", repos.map(function (r) { r.color = TC.SERIES[1]; r.valueText = TC.fmt(r.value) + " people"; return r; }));
+  }).catch(function (e) { TC.fail("#participation", e); });
+
   TC.live("pr-stats.json").then(function (s) {
     var merges = s.merge_totals_by_contributor, reviews = s.review_totals_by_contributor;
     TC.set("authors", TC.fmt(Object.keys(merges).length));

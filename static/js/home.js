@@ -30,23 +30,4 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
     .then(function (t) { TC.$$("[data-toolchain]").forEach(function (e) { e.textContent = t.trim(); }); })
     .catch(function () { TC.$$("[data-toolchain]").forEach(function (e) { e.textContent = "see the file"; }); });
-
-  TC.local("examples.json").then(function (ex) {
-    var box = TC.$("#examples");
-    box.replaceChildren();
-    if (ex.imports && ex.imports.length) TC.$("[data-imports]").textContent = ex.imports.map(function (i) { return "import " + i; }).join("\n");
-    ex.examples.forEach(function (e) {
-      var title = (e.summary.split(" — ")[0] || e.id).trim();
-      var rest = e.summary.indexOf(" — ") >= 0 ? e.summary.slice(e.summary.indexOf(" — ") + 3) : "";
-      var pre = TC.el("pre", { class: "lean" });
-      var code = TC.el("code");
-      code.innerHTML = TC.highlightLean(e.code);  // highlightLean escapes its input
-      pre.append(code);
-      box.append(TC.el("div", { class: "panel example" }, [
-        TC.el("h3", { text: title }),
-        rest ? TC.el("p", { text: rest.charAt(0).toUpperCase() + rest.slice(1) }) : null,
-        TC.copyable(pre),
-      ]));
-    });
-  }).catch(function (e) { TC.fail("#examples", e); });
 });

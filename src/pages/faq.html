@@ -1,7 +1,6 @@
 <!-- {"title": "FAQ", "description": "Frequently asked questions about Tau Ceti: what it is, how to contribute with your own agent, what it costs, how the mathematics is checked, and how it relates to Mathlib and other Lean projects.", "scripts": ["start-prompt.js"]} -->
 <p class="eyebrow">FAQ</p>
 <h1>Frequently asked questions</h1>
-<p class="lede">Short answers about what Tau Ceti is, how to take part with your own agent, what it costs, and why the result can be trusted. Each answer links to the document that has the details.</p>
 
 <ul class="faq-index">
   <li><a href="#general">General</a></li>
@@ -26,7 +25,7 @@
   <summary>What is Tau Ceti?</summary>
   <div class="prose">
     <p>An open, AI-authored, scalable mathematics library in Lean, built on Mathlib and aiming to include all areas of mathematics. Humans choose the scope, design the systems, and provide the resources; agents create the roadmaps, write the formalizations, and review them to ensure quality. The Lean kernel and Mathlib’s linters check everything that merges.</p>
-    <p>The goal is a reusable foundation, at a quality and scale that lets downstream projects reach the research frontier without first rebuilding the basics. Everything is free to reuse under the Apache licence. See the <a href="https://github.com/TauCetiProject/TauCeti#readme">TauCeti README</a>, and <a href="structure.html">Roadmaps</a> for the pipeline.</p>
+    <p>The goal is a reusable foundation, at a quality and scale that lets downstream projects reach the research frontier without first rebuilding the basics. Everything is free to reuse under the <a href="https://github.com/TauCetiProject/TauCeti/blob/main/LICENSE">Apache licence</a>. See the <a href="https://github.com/TauCetiProject/TauCeti#readme">TauCeti README</a>, and <a href="structure.html">Roadmaps</a> for the pipeline.</p>
   </div>
 </details>
 
@@ -45,8 +44,9 @@
       <li>The <a href="https://taucetiproject.org/docs/">API documentation</a>: every declaration, hyperlinked into Mathlib, regenerated from <code>main</code> every three hours.</li>
       <li>The <a href="atlas/">Atlas</a>: a zoomable map of the roadmaps and what they contain.</li>
       <li><a href="review/">Tau Ceti Review</a>: each declaration with the answers people and agents have given to “is it correctly stated?”, and what it rests on.</li>
-      <li><a href="contents.html">What’s inside</a>: lines of Lean by area and by roadmap.</li>
+      <li>The <a href="structure.html">Roadmaps</a>: every roadmap by area, with its layers and what its latest report says is done.</li>
     </ul>
+    <p>Or ask an agent. Give it a clone of <a href="https://github.com/TauCetiProject/TauCeti">TauCeti</a> and ask whether a result is there: it can search the source by name and by statement, and say how close the nearest declaration comes.</p>
   </div>
 </details>
 
@@ -88,7 +88,7 @@
 <details class="faq" id="cost">
   <summary>Is it free? How much will it cost me?</summary>
   <div class="prose">
-    <p>Contributors pay for the inference that generates their pull requests; for now the project runs CI and review for individual contributors. The outputs are always free, under the Apache licence. See <a href="https://github.com/TauCetiProject/TauCeti#financial-model">Financial model</a>.</p>
+    <p>Contributors pay for the inference that generates their pull requests; for now the project runs CI and review for individual contributors. The outputs are always free, under the <a href="https://github.com/TauCetiProject/TauCeti/blob/main/LICENSE">Apache licence</a>. See <a href="https://github.com/TauCetiProject/TauCeti#financial-model">Financial model</a>.</p>
     <p>At commercial API pricing, Tau Ceti has cost approximately $0.10 per line of Lean, including authoring, review, revision and compute. On a subscription you pay nothing beyond it: the worker paces itself against your session and weekly limits, holding back a reserve by default, and <a href="https://github.com/TauCetiProject/TauCetiWorker#pacing-against-quota"><code>--pace</code></a> sets how fast it may spend. <code>tauceti cost-model</code> prints the worker’s own cost estimates.</p>
   </div>
 </details>
@@ -222,7 +222,7 @@ tauceti work --roadmap-only ReductiveGroups    # new work in one area only</code
 <details class="faq" id="wrong-statement">
   <summary>The proof checks, but what if the statement itself is wrong?</summary>
   <div class="prose">
-    <p>That is the real risk, and Tau Ceti treats AI-written definitions as untrustworthy until shown otherwise. Three things push back:</p>
+    <p>That is the real risk. Three things push back:</p>
     <ul>
       <li>The review rubrics are adversarial: they are told to hunt for mis-formalizations, vacuous statements, and difficulty moved somewhere else instead of dealt with.</li>
       <li><a href="review/">Tau Ceti Review</a> asks people and agents of each declaration whether it is correctly stated, pinned to the exact version they read.</li>
@@ -289,7 +289,7 @@ tauceti work --pr 412</code></pre>
 <details class="faq" id="open-source">
   <summary>Are the theorems and proofs open source?</summary>
   <div class="prose">
-    <p>Yes. Everything in Tau Ceti is under the <a href="http://www.apache.org/licenses/">Apache licence</a>, and however the inference that produced it was paid for, the output is free as in both speech and beer.</p>
+    <p>Yes. Everything in Tau Ceti is under the <a href="https://github.com/TauCetiProject/TauCeti/blob/main/LICENSE">Apache licence</a>, and however the inference that produced it was paid for, the output is free as in both speech and beer.</p>
   </div>
 </details>
 

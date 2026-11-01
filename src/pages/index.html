@@ -23,6 +23,13 @@
   <div class="tile loading" data-stat="merged"><div class="v">…</div><div class="k">pull requests merged</div><div class="d"></div></div>
 </div>
 
+<div class="panel start-panel">
+  <h3>Contribute in two lines</h3>
+<pre><code>uv tool install git+https://github.com/TauCetiProject/TauCetiWorker
+tauceti work --loop</code></pre>
+  <p class="small muted">The worker runs as your GitHub account and on your Claude or Codex subscription: each round it picks one job, such as a review, a fix or a new formalization, and stops, and <code>--loop</code> keeps it going. <a href="contribute.html#worker">Prerequisites, and how to try a single round first</a>.</p>
+</div>
+
 <h2>How it works</h2>
 <div class="cards four">
   <div class="card accent"><h3>Humans set the scope</h3><p>People decide which mathematics the library covers, design the systems that build and check it (the review rubrics, CI, the workers), and provide the inference and compute. Every <a href="structure.html">roadmap</a> merges only after human review.</p></div>
@@ -39,7 +46,7 @@
   <div class="tiles">
     <div class="tile loading" data-stat="r-decls"><div class="v">…</div><div class="k">declarations to review</div></div>
     <div class="tile loading" data-stat="r-reviewed"><div class="v">…</div><div class="k">reviewed so far</div></div>
-    <div class="tile loading" data-stat="r-people"><div class="v">…</div><div class="k">yes answers from people</div></div>
+    <div class="tile loading" data-stat="r-people"><div class="v">…</div><div class="k">positive reviews from humans</div></div>
     <div class="tile loading" data-stat="r-problems"><div class="v">…</div><div class="k">problems still open</div></div>
   </div>
   <p><a class="cta ghost" href="review/">Review a declaration →</a></p>
@@ -52,30 +59,36 @@
 </div>
 
 <h2 id="use">Use it from Lean</h2>
-<p class="prose">Tau Ceti is an ordinary Lake package. Your project needs the same Lean toolchain as Tau Ceti, and gets Mathlib through it.</p>
+<p class="prose">Tau Ceti is an ordinary Lake package. Depend on a tagged release: releases have passed Tau Ceti’s security audit, and <code>main</code> moves ahead of them. The newest is <strong>{{release_tag}}</strong>, tagged {{release_date}}; <a href="https://github.com/TauCetiProject/TauCeti/tags">every release</a>.</p>
 <ol class="steps">
   <li>
-    <h3>Pick a commit and its toolchain</h3>
-    <p>Tau Ceti tracks Mathlib <code>master</code> and moves its toolchain with it, so pin one Tau Ceti commit and copy the <code>lean-toolchain</code> of that same commit into your project:</p>
-<pre><code>REV=$(git ls-remote https://github.com/TauCetiProject/TauCeti refs/heads/main | cut -f1)
-curl -fsSL -o lean-toolchain https://raw.githubusercontent.com/TauCetiProject/TauCeti/$REV/lean-toolchain
-echo $REV</code></pre>
-    <p class="small muted"><code>main</code> is currently on <code data-toolchain>…</code>.</p>
-  </li>
-  <li>
-    <h3>Require it in <code>lakefile.toml</code></h3>
+    <h3>Pin the release and its toolchain</h3>
+    <p>Each release is named after the Lean toolchain it builds with. Your project needs that same toolchain:</p>
+<pre><code>echo {{release_toolchain}} &gt; lean-toolchain</code></pre>
+    <p>and requires the release in <code>lakefile.toml</code>:</p>
 <pre><code>[[require]]
 name = "TauCeti"
 git = "https://github.com/TauCetiProject/TauCeti"
-rev = "…"   # the commit printed above</code></pre>
-    <p class="small muted">Don’t also require Mathlib at a different revision: Tau Ceti’s manifest pins the Mathlib it builds against, and Lake takes it from there. Commit the <code>lake-manifest.json</code> Lake writes, which records the exact Tau Ceti and Mathlib commits. To move to a newer Tau Ceti, repeat step 1 with the new commit.</p>
+rev = "{{release_tag}}"</code></pre>
+    <p class="small muted">Don’t also require Mathlib: Tau Ceti’s manifest pins the Mathlib it builds against, and Lake takes it from there. To move to a newer release, change both the toolchain and <code>rev</code>, then repeat the steps below.</p>
   </li>
   <li>
-    <h3>Fetch and build</h3>
-<pre><code>lake update TauCeti
-lake exe cache get    # Mathlib’s prebuilt oleans
+    <h3>Fetch the dependencies</h3>
+<pre><code>lake update</code></pre>
+    <p class="small muted">This also downloads Mathlib’s prebuilt files. Commit the <code>lake-manifest.json</code> it writes, which records the exact Tau Ceti and Mathlib commits.</p>
+  </li>
+  <li>
+    <h3>Download Tau Ceti’s prebuilt files</h3>
+    <p>Tau Ceti publishes its build outputs in its own public cache. Tell Lake where it is, once per machine, by adding these lines to <code>~/.lake/config.toml</code>:</p>
+<pre><code>[[cache.service]]
+name = "tauceti"
+kind = "s3"
+artifactEndpoint = "https://cache.taucetiproject.org/artifacts"
+revisionEndpoint = "https://cache.taucetiproject.org/revisions"</code></pre>
+    <p>Then, in your project:</p>
+<pre><code>lake cache get --service tauceti --repo TauCetiProject/TauCeti --package TauCeti
 lake build</code></pre>
-    <p class="small muted">Mathlib’s cache covers only Mathlib. Tau Ceti’s own cache (<code>scripts/lake-cache-get.sh</code>, in its <a href="https://github.com/TauCetiProject/TauCeti#building">README</a>) restores a Tau Ceti checkout built on its own, so in your project <code>lake build</code> compiles from source the Tau Ceti modules your files import, and only those.</p>
+    <p class="small muted">Lake reads cache services from that file, not from <code>lakefile.toml</code> (set <code>LAKE_CONFIG</code> to use another file). Defining a service does not make it Lake’s default, so nothing else changes. With the download in place, <code>lake build</code> unpacks Tau Ceti instead of compiling it.</p>
   </li>
   <li>
     <h3>Import a module and check a result</h3>

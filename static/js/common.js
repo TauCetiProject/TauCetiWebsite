@@ -105,6 +105,12 @@
     }
     return e;
   }
+  var LABEL_GAP = 13, measure;
+  function textWidth(str) {
+    measure = measure || document.createElement("canvas").getContext("2d");
+    measure.font = "11px ui-sans-serif, system-ui, sans-serif";
+    return measure.measureText(str).width;
+  }
   function niceMax(v) {
     if (v <= 0) return 1;
     var p = Math.pow(10, Math.floor(Math.log10(v))), m = v / p;
@@ -113,7 +119,9 @@
   }
 
   /* opts: dates (ISO days), series [{name, values, color, dash, note}], stacked, area,
-     yFormat, tipFormat, height, legend (default: when ≥ 2 series), markers [{date, label}] */
+     yFormat, tipFormat, height, legend (default: when ≥ 2 series), markers [{date, label}],
+     log (a log(1 + y) axis, so a count of 0 stays on it), endLabels (name and last value at the
+     right end of every line, in place of a legend), tipLimit (rows in the tooltip, largest first) */
   /* A time chart with a range control (30 days, 90 days, all, when the series is long enough for them
      to differ) and a footnote saying how fresh it is and how to read it by keyboard. opts as plot()'s,
      plus updated (an ISO time; else the last date is given) and ranges: false. */
@@ -153,7 +161,7 @@
     container.classList.add("chart");
     var series = opts.series, dates = opts.dates, n = dates.length;
     var yFormat = opts.yFormat || TC.compact, tipFormat = opts.tipFormat || TC.fmt;
-    if (opts.legend !== false && series.length > 1) {
+    if (opts.legend !== false && !opts.endLabels && series.length > 1) {
       container.append(TC.el("div", { class: "legend" }, series.map(function (sr) {
         return TC.el("span", null, [TC.el("i", { class: opts.area || opts.stacked ? "" : "line", style: "background:" + sr.color }), sr.name]);
       })));
@@ -178,20 +186,39 @@
       var W = Math.max(280, host.clientWidth || container.clientWidth || 600);
       var H = opts.height || (W < 520 ? 240 : 300);
       var m = { l: 46, r: 14, t: 10, b: 26 };
+      var ends = opts.endLabels ? series.map(function (sr, k) {
+        return { k: k, text: sr.name + " · " + tipFormat(sr.values[n - 1] || 0) };
+      }) : [];
+      if (ends.length) {
+        H = Math.max(H, ends.length * LABEL_GAP + m.t + m.b);
+        // Labels get at most 42% of the width; where name and count don't fit, the name alone.
+        var cap = Math.round(W * 0.42), widest = function () { return Math.max.apply(null, ends.map(function (e) { return textWidth(e.text); })) + 18; };
+        if (widest() > cap) ends.forEach(function (e) {
+          e.text = series[e.k].name;
+          while (e.text.length > 4 && textWidth(e.text) + 18 > cap) e.text = e.text.slice(0, e.text.endsWith("…") ? -2 : -1) + "…";
+        });
+        m.r = Math.min(Math.ceil(widest()), cap);
+      }
       var w = W - m.l - m.r, h = H - m.t - m.b;
       var ymax = opts.yMax;
       if (ymax == null) {
         ymax = 0;
         tops.forEach(function (arr) { arr.forEach(function (v) { if (v > ymax) ymax = v; }); });
-        ymax = niceMax(ymax * 1.04);
+        if (!opts.log) ymax = niceMax(ymax * 1.04);
       }
+      var f = opts.log ? function (v) { return Math.log10(1 + Math.max(0, v)); } : function (v) { return Math.max(0, v); };
+      var ftop = opts.log ? f(ymax) * 1.03 || 1 : ymax;
       var x = function (i) { return m.l + (n <= 1 ? w / 2 : (i / (n - 1)) * w); };
-      var y = function (v) { return m.t + h - (Math.max(0, v) / ymax) * h; };
+      var y = function (v) { return m.t + h - (f(v) / ftop) * h; };
       var svg = s("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, role: "img", "aria-label": opts.label || "chart" });
-      // grid + y axis
-      var ticks = 4;
-      for (var g = 0; g <= ticks; g++) {
-        var val = (ymax / ticks) * g, yy = y(val);
+      // grid + y axis: 0, 1, 3, 10, 30, … on a log axis, five even steps otherwise
+      var tickVals = [];
+      if (opts.log) {
+        tickVals.push(0);
+        for (var p10 = 1; p10 <= ymax; p10 *= 10) { tickVals.push(p10); if (3 * p10 <= ymax) tickVals.push(3 * p10); }
+      } else for (var g0 = 0; g0 <= 4; g0++) tickVals.push((ymax / 4) * g0);
+      for (var g = 0; g < tickVals.length; g++) {
+        var val = tickVals[g], yy = y(val);
         svg.append(s("line", { class: g === 0 ? "baseline" : "gridline", x1: m.l, x2: m.l + w, y1: yy, y2: yy }));
         var tx = s("text", { class: "axis", x: m.l - 6, y: yy + 3.5, "text-anchor": "end" });
         tx.textContent = yFormat(val);
@@ -224,8 +251,24 @@
           svg.append(s("path", { d: line, fill: "none", stroke: sr.color, "stroke-width": 2, "stroke-dasharray": sr.dash || "", "stroke-linejoin": "round", "stroke-linecap": "round" }));
         }
       }
+      // End labels in value order, pushed apart to LABEL_GAP and back inside the plot, each joined to
+      // its line by a short leader.
+      if (ends.length) {
+        ends.forEach(function (e) { e.y0 = y(tops[e.k][n - 1] || 0); e.y = e.y0; });
+        ends.sort(function (a, b) { return a.y0 - b.y0; });
+        for (var e1 = 1; e1 < ends.length; e1++) ends[e1].y = Math.max(ends[e1].y, ends[e1 - 1].y + LABEL_GAP);
+        ends[ends.length - 1].y = Math.min(ends[ends.length - 1].y, m.t + h);
+        for (var e2 = ends.length - 2; e2 >= 0; e2--) ends[e2].y = Math.min(ends[e2].y, ends[e2 + 1].y - LABEL_GAP);
+        ends.forEach(function (e) {
+          var col = series[e.k].color, x0 = x(n - 1);
+          svg.append(s("path", { d: "M" + (x0 + 2) + "," + e.y0.toFixed(1) + "L" + (x0 + 10) + "," + e.y.toFixed(1), fill: "none", stroke: col, "stroke-width": 1, opacity: 0.6 }));
+          var et = s("text", { class: "label", x: x0 + 13, y: (e.y + 3.5).toFixed(1), fill: col });
+          et.textContent = e.text;
+          svg.append(et);
+        });
+      }
       // direct label on the last point of a lone, unstacked series
-      if (series.length === 1 && opts.endLabel !== false) {
+      if (series.length === 1 && opts.endLabel !== false && !ends.length) {
         var last = series[0].values[n - 1];
         var el = s("text", { class: "label", x: x(n - 1) - 4, y: y(last) - 8, "text-anchor": "end" });
         el.textContent = TC.fmt(last);
@@ -250,6 +293,12 @@
         tip.replaceChildren(TC.el("div", { class: "t", text: TC.dayYear(dates[i]) }));
         var order = series.map(function (_, k) { return k; });
         if (opts.stacked) order.reverse();
+        if (opts.tipLimit) {
+          order.sort(function (a, b) { return (series[b].values[i] || 0) - (series[a].values[i] || 0); });
+          var more = order.length - opts.tipLimit;
+          order.slice(opts.tipLimit).forEach(function (k) { dots[k].setAttribute("visibility", "hidden"); });
+          order = order.slice(0, opts.tipLimit);
+        }
         order.forEach(function (k) {
           var v = series[k].values[i];
           dots[k].setAttribute("cx", cx); dots[k].setAttribute("cy", y(tops[k][i]));
@@ -260,6 +309,7 @@
             TC.el("em", { text: series[k].name }),
           ]));
         });
+        if (more > 0) tip.append(TC.el("div", { class: "r" }, [TC.el("span"), TC.el("em", { text: "and " + more + " more" })]));
         if (opts.stacked && opts.total !== false) {
           tip.append(TC.el("div", { class: "r" }, [TC.el("span"), TC.el("b", { text: tipFormat(tops[series.length - 1][i]) }), TC.el("em", { text: "total" })]));
         }

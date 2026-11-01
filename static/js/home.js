@@ -25,9 +25,4 @@ document.addEventListener("DOMContentLoaded", function () {
       TC.set("r-problems", TC.fmt(c.problems));
     })
     .catch(function (e) { ["r-decls", "r-reviewed", "r-people", "r-problems"].forEach(function (k) { TC.set(k, "—"); }); console.error(e); });
-
-  fetch("https://raw.githubusercontent.com/TauCetiProject/TauCeti/main/lean-toolchain")
-    .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
-    .then(function (t) { TC.$$("[data-toolchain]").forEach(function (e) { e.textContent = t.trim(); }); })
-    .catch(function () { TC.$$("[data-toolchain]").forEach(function (e) { e.textContent = "see the file"; }); });
 });

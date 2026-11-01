@@ -403,6 +403,29 @@ def roadmap_examples() -> dict:
     return {"generated_at": now_iso(), "docs": DOCS, "examples": items}
 
 
+RELEASE_TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)(?:-rc(\d+))?$")
+
+
+def latest_release(repo: Path) -> dict:
+    """The newest release tag, the one the site tells a downstream project to pin.
+
+    Tags follow Lean's: vX.Y.Z-rcN sorts before vX.Y.Z, and a tag's own lean-toolchain is
+    read rather than assumed from its name.
+    """
+    def git(*a):
+        return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True, check=True).stdout.strip()
+
+    def key(tag):
+        m = RELEASE_TAG.match(tag)
+        return tuple(int(g) for g in m.groups()[:3]) + (int(m[4]) if m[4] else float("inf"),)
+
+    tags = [t for t in git("tag", "--list", "v*").split() if RELEASE_TAG.match(t)]
+    tag = max(tags, key=key)
+    return {"generated_at": now_iso(), "tag": tag, "commit": git("rev-list", "-n1", tag),
+            "date": git("for-each-ref", "--format=%(creatordate:short)", f"refs/tags/{tag}"),
+            "toolchain": git("show", f"{tag}:lean-toolchain")}
+
+
 def ci_current() -> dict:
     m = fetch_json(CI_MANIFEST)
     cur = m.get("current") or {}
@@ -443,6 +466,7 @@ def main() -> int:
 
     if args.tauceti_repo:
         step("library-loc", lambda: write(args.out, "library-loc.json", library_loc(args.tauceti_repo)))
+        step("release", lambda: write(args.out, "release.json", latest_release(args.tauceti_repo)))
     step("roadmap-examples", lambda: write(args.out, "roadmap-examples.json", roadmap_examples()))
     step("ci-current", lambda: write(args.out, "ci-current.json", ci_current()))
     if not args.skip_prs:

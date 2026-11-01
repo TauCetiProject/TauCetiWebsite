@@ -117,7 +117,7 @@ roadmap milestones (https://github.com/roed-math/tauceti-fleet). It starts in pi
 workers: one author, one fixer, one reviewer. It needs:
 
 - a host: Ubuntu with Incus, so rounds run in egress-denied containers (`up.sandbox = "host"` runs
-  without them, fine for trying it out). Disk runs out first, at about 20 GB per worker;
+  without them, fine for trying it out);
 - the GitHub account it acts as. Every GitHub request goes through a rate gate; set
   `gate.mutations_per_hour` and `gate.reads_per_hour` in `fleet.toml` (defaults 40 and 600) so the
   fleet stays under GitHub's limits, and split them if several fleets share the account;

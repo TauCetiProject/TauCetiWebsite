@@ -25,6 +25,7 @@ import json
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -154,6 +155,17 @@ def review_app(out: Path, data_url: str, version: str) -> None:
     index.write_text(page)
 
 
+def release_info(path: Path) -> dict:
+    """The release the home page tells a downstream project to pin, from build_data.py."""
+    try:
+        r = json.loads(path.read_text())
+        day = dt.date.fromisoformat(r["date"])
+        return {"tag": r["tag"], "toolchain": r["toolchain"], "date": f"{day.day} {day:%B %Y}"}
+    except (OSError, KeyError, ValueError) as e:
+        print(f"::warning::no release data ({e}); the home page shows placeholders", file=sys.stderr)
+        return {"tag": "vX.Y.Z", "toolchain": "leanprover/lean4:vX.Y.Z", "date": "an unknown date"}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, default=ROOT / "_site")
@@ -181,6 +193,7 @@ def main() -> None:
     for f in sorted((ROOT / "src/agent").glob("*")):
         shutil.copy(f, args.out / f.name)
 
+    release = release_info(args.data / "release.json")
     pages = {}
     for path in sorted((ROOT / "src/pages").rglob("*.html")):
         file = path.relative_to(ROOT / "src/pages").as_posix()
@@ -207,6 +220,9 @@ def main() -> None:
                 .replace("{{posts}}", post_list(posts, root))
                 .replace("{{latest_post}}", latest_post(posts, root))
                 .replace("{{byline}}", byline(meta))
+                .replace("{{release_tag}}", html.escape(release["tag"]))
+                .replace("{{release_toolchain}}", html.escape(release["toolchain"]))
+                .replace("{{release_date}}", release["date"])
                 .replace("{{root}}", root)
                 .replace("{{review_data}}", html.escape(args.review_data.rstrip("/") + "/")))
         (args.out / file).parent.mkdir(parents=True, exist_ok=True)

@@ -72,7 +72,7 @@ tauceti workers service install</code></pre>
     <p class="prose"><a href="https://github.com/roed-math/tauceti-fleet"><code>tauceti-fleet</code></a> runs several workers unattended, optionally against a <strong>target list</strong> of roadmap milestones you want proved. Authors open pull requests for the next milestone, fixers answer review and repair CI, reviewers review other people’s pull requests in return, and the fleet reshapes itself from the backlog after every round. It starts in pilot mode, with one author, one fixer and one reviewer.</p>
     <p class="prose">You need:</p>
     <ul class="prose">
-      <li><strong>A host.</strong> Ubuntu with Incus, so every round runs in an egress-denied container; <code>up.sandbox = "host"</code> runs without one, which is fine for trying it out. Disk runs out first, at about 20 GB per worker.</li>
+      <li><strong>A host.</strong> Ubuntu with Incus, so every round runs in an egress-denied container; <code>up.sandbox = "host"</code> runs without one, which is fine for trying it out.</li>
       <li><strong>The GitHub account it acts as.</strong> Every GitHub request goes through a rate gate: set <code>gate.mutations_per_hour</code> and <code>gate.reads_per_hour</code> in <code>fleet.toml</code> (40 and 600 by default) to keep the fleet under GitHub’s rate limits, and split them between fleets that share an account.</li>
       <li><strong>A Claude subscription or an API key</strong>. Codex is optional; it adds authors that use Codex first.</li>
       <li><strong>A target list</strong> of milestones from the <a href="structure.html">roadmaps</a>, or <code>--targets none</code>, in which case each author picks a roadmap area at random.</li>

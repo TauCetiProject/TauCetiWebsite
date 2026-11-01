@@ -2,19 +2,21 @@ document.addEventListener("DOMContentLoaded", function () {
   "use strict";
   var TC = window.TC;
 
+  // Every plotted account as its own line on a log axis, so the long tail stays visible; colours
+  // repeat after eight, so later rounds are dashed and the end labels name each line.
+  var DASH = ["", "6 3", "2 3"];
   function cumulative(sel, dates, plotted, label, updated) {
-    var names = Object.keys(plotted);
+    var names = Object.keys(plotted), last = function (n) { return plotted[n][plotted[n].length - 1]; };
     var others = names.filter(function (n) { return /^Other/.test(n); });
-    var named = names.filter(function (n) { return !/^Other/.test(n); })
-      .sort(function (a, b) { return plotted[b][plotted[b].length - 1] - plotted[a][plotted[a].length - 1]; });
-    var top = named.slice(0, 7), rest = named.slice(7).concat(others);
-    var series = top.map(function (n, i) { return { name: n, values: plotted[n], color: TC.SERIES[i] }; });
-    var restCount = named.length - 7 + others.reduce(function (a, o) { var m = o.match(/\((\d+)/); return a + (m ? +m[1] : 0); }, 0);
-    if (rest.length) series.push({
-      name: "Everyone else (" + restCount + ")", color: TC.OTHER,
-      values: dates.map(function (_, i) { return rest.reduce(function (a, n) { return a + plotted[n][i]; }, 0); }),
+    var named = names.filter(function (n) { return !/^Other/.test(n); }).sort(function (a, b) { return last(b) - last(a); });
+    var series = named.map(function (n, i) {
+      return { name: n, values: plotted[n], color: TC.SERIES[i % TC.SERIES.length], dash: DASH[Math.floor(i / TC.SERIES.length) % DASH.length] };
     });
-    TC.timeChart(sel, { dates: dates, series: series, stacked: true, label: label, updated: updated });
+    others.forEach(function (o) {
+      var m = o.match(/\((\d+)/);
+      series.push({ name: m ? "Everyone else (" + m[1] + ")" : o, values: plotted[o], color: TC.OTHER, dash: "1 3" });
+    });
+    TC.timeChart(sel, { dates: dates, series: series, log: true, endLabels: true, tipLimit: 10, label: label, updated: updated });
   }
 
   // taucetiproject.org publishes these counts only inside its chart, in the chart's title and description.

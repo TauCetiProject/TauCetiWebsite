@@ -11,35 +11,17 @@ document.addEventListener("DOMContentLoaded", function () {
   TC.local("library-loc.json").then(function (l) { TC.set("files", TC.fmt(l.files_now)); })
     .catch(function () { TC.set("files", "—"); });
 
-  // Areas get a stable colour by rank in the all-time total, so the two charts agree.
-  var colorOf = {};
-  // The roadmap pages are addressed by progress.json id; a label names a top-level roadmap.
-  var pageOf = TC.live("progress.json").then(function (p) {
-    var ids = {};
-    p.rows.forEach(function (r) { if (!r.parent && !r.retired) ids[r.name] = r.id; });
-    return ids;
-  }).catch(function () { return {}; });
-  Promise.all([TC.local("loc-by-topic.json"), pageOf]).then(function (res) {
-    var d = res[0], ids = res[1];
-    d.topics.forEach(function (t, i) { colorOf[t.arxiv] = i < 7 ? TC.SERIES[i] : TC.OTHER; });
+  TC.local("loc-by-topic.json").then(function (d) {
     TC.set("areas", String(d.topics.filter(function (t) { return t.arxiv !== "Unsorted"; }).length));
     TC.$("[data-topic-note]").textContent = "Through " + TC.dayYear(d.last_full_day) + "; " + TC.fmt(d.unattributed.prs) + " pull requests without a single roadmap label are not shown.";
-    TC.bars("#by-topic", d.topics.map(function (t) {
+    TC.bars("#by-topic", d.topics.map(function (t, i) {
       return {
-        label: t.name, value: t.net_lines, color: colorOf[t.arxiv], href: "structure.html?area=" + encodeURIComponent(t.arxiv),
+        label: t.name, value: t.net_lines, color: i < 7 ? TC.SERIES[i] : TC.OTHER, href: "structure.html?area=" + encodeURIComponent(t.arxiv),
         valueText: TC.compact(t.net_lines) + " · " + t.roadmaps + (t.roadmaps === 1 ? " roadmap" : " roadmaps"),
         title: t.name + " (" + t.arxiv + "): " + TC.fmt(t.net_lines) + " net lines across " + t.roadmaps + " roadmaps",
       };
     }));
-    TC.bars("#by-roadmap", d.roadmaps.slice(0, 20).map(function (r) {
-      return {
-        label: r.roadmap, value: r.net_lines, color: colorOf[r.arxiv] || TC.OTHER,
-        href: ids[r.roadmap] ? "roadmap.html?id=" + encodeURIComponent(ids[r.roadmap]) : "structure.html#rm-" + r.roadmap,
-        valueText: TC.compact(r.net_lines) + " · " + TC.fmt(r.merged_prs) + " PRs",
-        title: r.roadmap + " (" + r.arxiv + "): " + TC.fmt(r.net_lines) + " net lines from " + TC.fmt(r.merged_prs) + " merged PRs",
-      };
-    }));
-  }).catch(function (e) { TC.fail("#by-topic", e); TC.fail("#by-roadmap", e); TC.set("areas", "—"); });
+  }).catch(function (e) { TC.fail("#by-topic", e); TC.set("areas", "—"); });
 
   TC.live("progress.json").then(function (p) {
     var byTopic = {};

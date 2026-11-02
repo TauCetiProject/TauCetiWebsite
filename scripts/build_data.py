@@ -231,9 +231,8 @@ def loc_by_topic(prs: list[dict], progress: dict, pr_stats: dict, lean: dict[int
                "roadmaps": sum(1 for r in roadmaps if r["arxiv"] == code)}
               for code, series in topic_series.items()]
     topics.sort(key=lambda t: -t["net_lines"])
-    roadmaps.sort(key=lambda r: -r["net_lines"])
     return {"generated_at": now_iso(), "last_full_day": end.isoformat(), "dates": dates,
-            "topics": topics, "roadmaps": roadmaps, "unattributed": unattributed,
+            "topics": topics, "unattributed": unattributed,
             "merged_prs": sum(per_label_prs.values()) + unattributed["prs"],
             "lines": "lean" if lean is not None else "all files"}
 

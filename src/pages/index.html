@@ -11,7 +11,7 @@
     </div>
     {{latest_post}}
   </div>
-  <img src="static/img/voyager.jpg" width="1400" height="1050" alt="Artist's concept of the Voyager spacecraft in flight, its white dish antenna and long boom against a starfield.">
+  <a class="hero-atlas" href="atlas/"><img src="static/img/atlas-mathlib.webp" width="1120" height="840" alt="Open the Tau Ceti Atlas, a star map of the library: Mathlib as a sun at the centre, its key definitions and theorems scattered across a disk around it, and Tau Ceti's roadmaps as dense clusters of stars ringing the disk."></a>
 
 </section>
 
@@ -62,15 +62,22 @@ tauceti work --loop</code></pre>
 <p class="prose">Tau Ceti is an ordinary Lake package. Depend on a tagged release: releases have passed Tau Ceti’s security audit, and <code>main</code> moves ahead of them. The newest is <strong>{{release_tag}}</strong>, tagged {{release_date}}; <a href="https://github.com/TauCetiProject/TauCeti/tags">every release</a>.</p>
 <ol class="steps">
   <li>
-    <h3>Pin the release and its toolchain</h3>
-    <p>Each release is named after the Lean toolchain it builds with. Your project needs that same toolchain:</p>
-<pre><code>echo {{release_toolchain}} &gt; lean-toolchain</code></pre>
-    <p>and requires the release in <code>lakefile.toml</code>:</p>
-<pre><code>[[require]]
+    <h3>Make a project on the release’s toolchain</h3>
+    <p>Each release is named after the Lean toolchain it builds with, and your project needs that same toolchain. Start in an empty folder; the <code>lean-toolchain</code> file tells Lean which version to use there:</p>
+<pre><code>mkdir my-project &amp;&amp; cd my-project
+echo {{release_toolchain}} &gt; lean-toolchain</code></pre>
+    <p>Then create <code>lakefile.toml</code> in the same folder, requiring the release:</p>
+<pre><code>name = "MyProject"
+defaultTargets = ["MyProject"]
+
+[[require]]
 name = "TauCeti"
 git = "https://github.com/TauCetiProject/TauCeti"
-rev = "{{release_tag}}"</code></pre>
-    <p class="small muted">Don’t also require Mathlib: Tau Ceti’s manifest pins the Mathlib it builds against, and Lake takes it from there. To move to a newer release, change both the toolchain and <code>rev</code>, then repeat the steps below.</p>
+rev = "{{release_tag}}"
+
+[[lean_lib]]
+name = "MyProject"</code></pre>
+    <p class="small muted">In a project you already have, set its <code>lean-toolchain</code> to <code>{{release_toolchain}}</code> and add the <code>[[require]]</code> block. Don’t also require Mathlib: Tau Ceti’s manifest pins the Mathlib it builds against, and Lake takes it from there. To move to a newer release, change both the toolchain and <code>rev</code>, then repeat the steps below.</p>
   </li>
   <li>
     <h3>Fetch the dependencies</h3>
@@ -85,18 +92,19 @@ name = "tauceti"
 kind = "s3"
 artifactEndpoint = "https://cache.taucetiproject.org/artifacts"
 revisionEndpoint = "https://cache.taucetiproject.org/revisions"</code></pre>
-    <p>Then, in your project:</p>
-<pre><code>lake cache get --service tauceti --repo TauCetiProject/TauCeti --package TauCeti
-lake build</code></pre>
-    <p class="small muted">Lake reads cache services from that file, not from <code>lakefile.toml</code> (set <code>LAKE_CONFIG</code> to use another file). Defining a service does not make it Lake’s default, so nothing else changes. With the download in place, <code>lake build</code> unpacks Tau Ceti instead of compiling it.</p>
+    <p>Then, in <code>my-project</code>:</p>
+<pre><code>lake cache get --service tauceti --repo TauCetiProject/TauCeti --package TauCeti</code></pre>
+    <p class="small muted">Lake reads cache services from that file, not from <code>lakefile.toml</code> (set <code>LAKE_CONFIG</code> to use another file). Defining a service does not make it Lake’s default, so nothing else changes. With the download in place, Lake unpacks Tau Ceti instead of compiling it.</p>
   </li>
   <li>
     <h3>Import a module and check a result</h3>
-    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules; find them in the <a href="https://taucetiproject.org/docs/">API documentation</a>, on <a href="examples.html">Examples</a> or in the <a href="atlas/tauceti/">Atlas</a>. For example:</p>
+    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules; find them in the <a href="https://taucetiproject.org/docs/">API documentation</a>, on <a href="examples.html">Examples</a> or in the <a href="atlas/tauceti/">Atlas</a>. For example, save this as <code>MyProject.lean</code>, the root of the library the lakefile names:</p>
 <pre><code>import TauCeti.Analysis.Complex.Conformal.RiemannMapping.Existence
 
 #check TauCeti.riemannMapping</code></pre>
-    <p class="small muted">Save it as a file in your project and run <code>lake env lean</code> on it, or open it in your editor: it prints the statement of the Riemann mapping theorem.</p>
+    <p>and build:</p>
+<pre><code>lake build</code></pre>
+    <p class="small muted">It prints the statement of the Riemann mapping theorem; opening the file in your editor shows the same.</p>
   </li>
 </ol>
 

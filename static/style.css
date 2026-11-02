@@ -117,7 +117,20 @@ main { max-width: var(--max); margin: 0 auto; padding: 0 16px 3rem; }
 .hero h1 { margin: 0 0 0.3rem; font-size: clamp(2.4rem, 6vw, 3.8rem); background: linear-gradient(90deg, var(--brand-1), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .hero .tag { font-family: var(--display); font-size: 1.3rem; color: var(--text); margin: 0 0 0.8rem; }
 .hero img { width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); display: block; }
-@media (max-width: 820px) { .hero { grid-template-columns: 1fr; } .hero img { order: -1; } }
+/* The Atlas render is transparent and fades into the page, so it has no frame of its own; a light page
+   would wash out its stars, so there it sits on the dark theme's blue. */
+.hero-atlas { display: block; border-radius: 14px; }
+:root[data-theme="light"] .hero-atlas { background: #0d1430; overflow: hidden; }
+:root[data-theme="light"] .hero .hero-atlas img { -webkit-mask-image: none; mask-image: none; }
+.hero .hero-atlas img {
+  border: 0; border-radius: 0; transition: filter 0.2s;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent), linear-gradient(transparent, #000 18%, #000 82%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent), linear-gradient(transparent, #000 18%, #000 82%, transparent);
+  mask-composite: intersect;
+}
+.hero-atlas:hover img { filter: brightness(1.15); }
+@media (max-width: 820px) { .hero { grid-template-columns: 1fr; } .hero img, .hero .hero-atlas { order: -1; } }
 .cta-row { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.2rem; }
 .cta { display: inline-block; font-family: var(--display); font-weight: 600; padding: 0.55rem 1.1rem; border-radius: 9px; background: linear-gradient(90deg, #ffd27a, #ff9d4d); color: #1a1205; }
 .cta:hover { text-decoration: none; filter: brightness(1.06); }

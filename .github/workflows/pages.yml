@@ -111,7 +111,8 @@ jobs:
   # The review app's tests, against the review data repository's forms and scripts. Until that
   # repository exists, the review's existing repository has the same ones.
   review:
-    runs-on: ubuntu-latest
+    # Playwright 1.57 can't install Chromium's dependencies on Ubuntu 26.04, which ubuntu-latest now is.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     defaults:
       run:

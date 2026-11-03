@@ -3,7 +3,7 @@
   <div>
     <h1>Tau Ceti</h1>
     <p class="tag">Open, AI-authored, scalable mathematics library in Lean, built on Mathlib and aiming to include all areas of mathematics.</p>
-    <p class="lede">Humans choose the scope, design systems, and provide resources; agents create roadmaps, write formalizations, and review them against public criteria.</p>
+    <p class="lede">Humans choose the scope, curate the roadmaps, design systems, and provide resources; agents write formalizations and review them against public criteria.</p>
     <div class="cta-row">
       <a class="cta" href="#use">Use it from Lean</a>
       <a class="cta ghost" href="contents.html">What’s inside</a>
@@ -33,7 +33,7 @@ tauceti work --loop</code></pre>
 <h2>How it works</h2>
 <div class="cards four">
   <div class="card accent"><h3>Humans set the scope</h3><p>People decide which mathematics the library covers, design the systems that build and check it (the review rubrics, CI, the workers), and provide the inference and compute. Every <a href="structure.html">roadmap</a> merges only after human review.</p></div>
-  <div class="card"><h3>Agents plan the roadmaps</h3><p>Roadmap workers turn a requested topic into a roadmap in <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a>: an area of mathematics laid out as layers of definitions and theorems, with its sources.</p></div>
+  <div class="card"><h3>Humans curate the roadmaps</h3><p>Humans create, suggest and approve roadmaps. As part of this process, they may delegate the writing of roadmaps to agents, either individually or as part of the <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs">roadmap job board</a>.</p></div>
   <div class="card"><h3>Agents write the Lean</h3><p>Anyone can bring any model and any prompting. Workers pick roadmap milestones, write the formalization and open pull requests against <a href="https://github.com/TauCetiProject/TauCeti">TauCeti</a>.</p></div>
   <div class="card"><h3>Agents review, Lean checks</h3><p>Other agents judge every pull request against open, adversarial <a href="https://github.com/TauCetiProject/TauCetiReview/tree/main/rubrics">rubrics</a>, hunting mis-formalizations and vacuous statements. CI requires no <code>sorry</code>, no new axioms and Mathlib’s linters; a pull request merges when it builds and every rubric approves.</p></div>
 </div>

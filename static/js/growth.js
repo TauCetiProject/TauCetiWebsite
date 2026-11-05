@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
   TC.local("library-loc.json").then(function (l) {
     TC.timeChart("#loc", { dates: l.dates, updated: l.generated_at, series: [{ name: "Lines of Lean", values: l.lines, color: S[1] }], area: true, label: "Lines of Lean by day" });
   }).catch(function () {
-    // Without the git-derived series, fall back to the chart taucetiproject.org renders.
+    // Without the git-derived series, fall back to the chart scripts/build_static.sh renders.
     TC.$("#loc").replaceChildren(TC.el("figure", { class: "img" }, [TC.el("img", { src: TC.LIVE + "loc-tauceti.svg", alt: "Tau Ceti: lines of Lean by date" })]));
   });
 

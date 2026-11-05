@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function count(r, s) { return r.states.filter(function (x) { return x === s; }).length; }
   function code(r) { return r.arxiv || "none"; }
 
-  /* ---------- what each filter means (as taucetiproject.org/progress defines them) ---------- */
+  /* ---------- what each filter means (as TauCetiTools' roadmap_progress.py defines them) ---------- */
   function hasReport(r) { return !!r.status; }
   function readmeChanged(r) { return !!r.assessment && r.assessment.reason === "ok" && r.assessment.readme_changed === true; }
   function prsDue(r) {

@@ -34,7 +34,8 @@ for d in src scripts vendor; do
 done
 
 cd "$WORK"
-python3 scripts/tauceti_progress.py --fetch > /dev/null
+# TAUCETI_PROGRESS: this run's progress.json from the site build, if there is one.
+python3 scripts/tauceti_progress.py --fetch ${TAUCETI_PROGRESS:+--source "$TAUCETI_PROGRESS"} > /dev/null
 python3 scripts/tauceti_prs.py --fetch > /dev/null
 python3 scripts/build.py > /dev/null
 python3 scripts/build.py --tauceti > /dev/null

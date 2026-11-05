@@ -100,11 +100,11 @@ document.addEventListener("DOMContentLoaded", function () {
     var run = Object.values(c.running || {}).reduce(function (a, b) { return a + b; }, 0);
     var q = Object.values(c.queued || {}).reduce(function (a, b) { return a + b; }, 0);
     TC.$("#ci-now").textContent = "When this site was last built (" + TC.ago(c.generated_at || c.fetched_at) + "), " + run + " CI " + (run === 1 ? "job was" : "jobs were") + " running (" + list(c.running) +
-      ") and " + q + (q === 1 ? " was" : " were") + " queued" + (q ? " (" + list(c.queued) + ")" : "") + ". The live count is on taucetiproject.org/ci.";
-    // The CI service's own chart URLs are newer than the copies taucetiproject.org deploys.
+      ") and " + q + (q === 1 ? " was" : " were") + " queued" + (q ? " (" + list(c.queued) + ")" : "") + ".";
+    // The CI service's own chart URLs are newer than the copies static/ holds from the last build.
     TC.$$("[data-ci-asset]").forEach(function (img) {
       var u = (c.assets || {})[img.getAttribute("data-ci-asset")];
       if (u) img.src = u;
     });
-  }).catch(function () { TC.$("#ci-now").textContent = "Live job counts are on taucetiproject.org/ci."; });
+  }).catch(function () { TC.$("#ci-now").textContent = "Current job counts are unavailable."; });
 });

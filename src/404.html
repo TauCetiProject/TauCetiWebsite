@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="robots" content="noindex">
+  <title>Not found — Tau Ceti</title>
+  <style>
+    :root { --bg: #0b1022; --text: #eef2fb; --muted: #a3aed0; --link: #7cc4ff; }
+    @media (prefers-color-scheme: light) { :root { --bg: #f6f7fb; --text: #121829; --muted: #46506d; --link: #0b5cad; } }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--text);
+      font: 16px/1.5 system-ui, sans-serif; padding: 0 16px; }
+    p { color: var(--muted); } a { color: var(--link); }
+  </style>
+  <script>
+    /* GitHub Pages serves this for every missing path. The addresses of the earlier taucetiproject.org
+       go to their pages here, and its API documentation to where TauCeti now publishes it. */
+    (function () {
+      var path = location.pathname, base = "/";
+      if (/\.github\.io$/.test(location.hostname)) base = path.split("/").slice(0, 2).join("/") + "/";
+      var rest = path.slice(base.length);
+      var moved = { "about": "faq.html", "team": "people.html", "statistics": "growth.html",
+                    "progress": "structure.html", "ci": "health.html" };
+      var target = null, first = rest.split("/")[0];
+      if (first === "docs") target = "{{docs}}" + rest.slice(5) + location.search + location.hash;
+      else if (moved[first] && rest.replace(/\/$/, "") === first) target = base + moved[first] + location.search + location.hash;
+      if (target) location.replace(target);
+      window.TC_BASE = base;
+    })();
+  </script>
+</head>
+<body>
+  <main>
+    <h1>Not found</h1>
+    <p>There is no page at this address. <a id="home" href="/">Go to the Tau Ceti home page</a>.</p>
+  </main>
+  <script>document.getElementById("home").href = window.TC_BASE;</script>
+</body>
+</html>

@@ -7,7 +7,8 @@ figures draw on (linked from the footer, for download):
 
   <!-- {"title": "Growth", "description": "...", "scripts": ["growth.js"], "data": ["live:progress.json"]} -->
 
-"live:NAME" is taucetiproject.org's published static/NAME; anything else is a path in this site.
+"live:NAME" is static/NAME, which scripts/build_static.sh generates into data/static/ (the paths
+taucetiproject.org has always published them at); anything else is a path in this site.
 
 A page in a subdirectory, src/pages/DIR/.../index.html, is built at the same path, its links relative
 to the site root through {{root}}. News posts are src/pages/blog/SLUG/index.html, whose header also
@@ -32,10 +33,13 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # The top bar: a plain link (label, href), or a group (label, [(label, href), ...]) that opens as a
 # dropdown. Every page in src/pages is built; the footer links the same pages.
+# The API documentation stays with TauCeti, whose api-docs workflow builds it with the library.
+DOCS = "https://taucetiproject.github.io/TauCeti/docs/"
+
 NAV = [
     ("Home", "index.html"),
     ("Library", [("Overview", "contents.html"), ("Roadmaps", "structure.html"), ("Examples", "examples.html"), ("Roadmap atlas", "atlas/"),
-                 ("Statement review", "review/"), ("API docs", "https://taucetiproject.org/docs/")]),
+                 ("Statement review", "review/"), ("API docs", DOCS)]),
     ("Contribute", [("Start in one paste", "contribute.html#start"), ("Run a worker", "contribute.html#worker"),
                     ("Run a fleet", "contribute.html#fleet"), ("Shape the roadmaps", "contribute.html#roadmap"),
                     ("PR review", "contribute.html#review"),
@@ -52,7 +56,6 @@ SECTION = {"roadmap.html": "structure.html"}
 REVIEW_DATA = "https://cbirkbeck.github.io/tauceti-reviewed-by-test/data/"
 
 HEADER = re.compile(r"\A\s*<!--\s*(\{.*?\})\s*-->\s*", re.S)
-LIVE = "https://taucetiproject.org/static/"
 
 # Before first paint, so a reader who chose light never sees the dark page flash. The review app reads
 # the same key (review/web/index.html).
@@ -101,7 +104,7 @@ def data_links(files: list[str], root: str = "") -> str:
         return ""
     links = []
     for f in files:
-        url = LIVE + f.removeprefix("live:") if f.startswith("live:") else root + f
+        url = root + ("static/" + f.removeprefix("live:") if f.startswith("live:") else f)
         links.append(f'<a href="{html.escape(url)}" download>{html.escape(url.rsplit("/", 1)[-1])}</a>')
     return ("        <p class=\"small muted data-links\">The data behind this page, to download: "
             + " · ".join(links) + ".</p>")
@@ -184,11 +187,14 @@ def main() -> None:
     args.out.mkdir(parents=True)
     shutil.copytree(ROOT / "static", args.out / "static")
     if args.data.exists():
-        shutil.copytree(args.data, args.out / "data", ignore=shutil.ignore_patterns("cache"))
+        shutil.copytree(args.data, args.out / "data", ignore=shutil.ignore_patterns("cache", "static"))
+    if (args.data / "static").exists():
+        shutil.copytree(args.data / "static", args.out / "static", dirs_exist_ok=True)
     (args.out / ".nojekyll").write_text("")
     if args.atlas:
         shutil.copytree(args.atlas, args.out / "atlas")
     review_app(args.out / "review", args.review_data, version)
+    (args.out / "404.html").write_text((ROOT / "src/404.html").read_text().replace("{{docs}}", DOCS))
     # Files for agents (start.md), served from the site root.
     for f in sorted((ROOT / "src/agent").glob("*")):
         shutil.copy(f, args.out / f.name)
@@ -223,6 +229,7 @@ def main() -> None:
                 .replace("{{release_tag}}", html.escape(release["tag"]))
                 .replace("{{release_toolchain}}", html.escape(release["toolchain"]))
                 .replace("{{release_date}}", release["date"])
+                .replace("{{docs}}", DOCS)
                 .replace("{{root}}", root)
                 .replace("{{review_data}}", html.escape(args.review_data.rstrip("/") + "/")))
         (args.out / file).parent.mkdir(parents=True, exist_ok=True)

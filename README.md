@@ -26,19 +26,26 @@ the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).
 
 - `src/layout.html` is the shared shell (nav, footer); `src/pages/*.html` are the page bodies.
   `scripts/build_site.py` puts them together into `_site/`.
-- The pages draw most of their figures in the browser from the data taucetiproject.org already
-  publishes every three hours (`progress.json`, `pr-stats.json`, `roadmap-completion.json`,
-  `pipeline-health.json` and the chart SVGs), which it serves with `Access-Control-Allow-Origin: *`.
-- `scripts/build_data.py` generates the few things that are not published there, into `data/`:
+- `scripts/build_static.sh` generates the data taucetiproject.org has always served under `/static/`
+  (`progress.json`, `pr-stats.json`, `roadmap-completion.json`, `pipeline-health.json` and the chart
+  SVGs) into `data/static/`, which the build copies to `static/`. Workers and other tools poll these
+  paths. It runs the generators TauCeti's own Pages build ran: TauCetiTools at the commit TauCeti's
+  workflows pin, configured by TauCeti's `tauceti.toml` and `scripts/`. The pull-request snapshot it
+  keeps in `data/cache/` makes a warm run a handful of requests; a cold one walks every pull request,
+  about 4,600 GraphQL requests.
+- `scripts/build_data.py` generates the rest, into `data/`:
   - `library-loc.json`: lines under `TauCeti/` by day, from TauCeti's git history.
   - `loc-by-topic.json`: net lines per roadmap and per arXiv category, from merged pull requests
     and their `roadmap/<Area>` labels (bors merges included).
   - `examples.json`: the showcase theorems from TauCeti's `web/examples/Examples.lean`.
   - `ci-current.json`: running and queued CI jobs, and the CI service's current chart URLs. The CI
     manifest's CORS policy admits only taucetiproject.org, so it is copied at build time.
-- `.github/workflows/pages.yml` regenerates `data/` and deploys every three hours. The pull-request
-  walk is cached between runs, so a warm run makes a handful of GraphQL requests (a cold one, about
-  210).
+- The API documentation stays with TauCeti, whose `api-docs.yml` builds it alongside the library; the
+  site links to it at `taucetiproject.github.io/TauCeti/docs/`. `404.html` sends the earlier site's
+  addresses there (`/docs/…`) or to their pages here (`/about/`, `/team/`, `/statistics/`,
+  `/progress/`, `/ci/`).
+- `.github/workflows/pages.yml` regenerates `data/` and deploys every three hours. Both walks are
+  cached between runs, with `data/`.
 
 Charts are plain SVG drawn by `static/js/common.js`; there are no dependencies.
 
@@ -46,7 +53,9 @@ Charts are plain SVG drawn by `static/js/common.js`; there are no dependencies.
 
 ```bash
 git clone https://github.com/TauCetiProject/TauCeti.git /tmp/TauCeti
-python3 scripts/build_data.py --tauceti-repo /tmp/TauCeti   # needs an authenticated gh
+git clone https://github.com/TauCetiProject/TauCetiRoadmap.git /tmp/TauCetiRoadmap
+SKIP_PRS=1 scripts/build_static.sh /tmp/TauCeti /tmp/TauCetiRoadmap data/static   # needs an authenticated gh
+python3 scripts/build_data.py --tauceti-repo /tmp/TauCeti
 python3 scripts/build_site.py
 python3 -m http.server -d _site 8765
 ```
@@ -60,4 +69,6 @@ python3 scripts/build_site.py --atlas /tmp/atlas-out
 ```
 
 `build_data.py --skip-prs` skips the pull-request walk; without `--tauceti-repo` it skips the
-line-count history, and the growth page falls back to taucetiproject.org's chart.
+line-count history, and the growth page falls back to the chart in `static/`. `SKIP_PRS=1` leaves
+out the pull-request walk and everything drawn from it (`pr-stats.json`, `pipeline-health.json`, the
+contributor charts), so `build_data.py` also needs `--skip-prs` unless `data/static/` already has them.

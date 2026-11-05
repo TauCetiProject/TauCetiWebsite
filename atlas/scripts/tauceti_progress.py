@@ -37,8 +37,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-URL = "https://taucetiproject.github.io/TauCeti/static/progress.json"
-PAGE = "https://taucetiproject.github.io/TauCeti/progress/"
+# The website generates progress.json with each deploy; the site build hands the Atlas this run's copy.
+URL = "https://taucetiproject.github.io/TauCetiWebsite/static/progress.json"
+PAGE = "https://taucetiproject.github.io/TauCetiWebsite/structure.html"
 REPOSITORY = "https://github.com/TauCetiProject/TauCetiRoadmap/blob/main/"
 COPY = ROOT / "data" / "tauceti-progress.json"
 READMES = ROOT / "data" / "tauceti-new-roadmaps.json"
@@ -480,8 +481,11 @@ def tauceti_only(atlas: dict) -> dict:
 
 
 def fetch(url: str = URL, copy: Path = COPY) -> dict:
-    with urllib.request.urlopen(url, timeout=60) as response:
-        progress = json.loads(response.read().decode("utf-8"))
+    if "://" in url:
+        with urllib.request.urlopen(url, timeout=60) as response:
+            progress = json.loads(response.read().decode("utf-8"))
+    else:
+        progress = json.loads(Path(url).read_text(encoding="utf-8"))
     if not isinstance(progress.get("rows"), list) or not progress["rows"]:
         raise ValueError("The Progress page's data has no roadmaps.")
     copy.write_text(json.dumps(progress, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
@@ -495,9 +499,10 @@ def load(copy: Path = COPY) -> dict | None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--fetch", action="store_true", help="download the Progress page's data")
+    parser.add_argument("--source", default=URL, help="progress.json's URL or path (default %(default)s)")
     args = parser.parse_args()
     if args.fetch:
-        progress = fetch()
+        progress = fetch(args.source)
         print(f"{len(progress['rows'])} roadmaps, exported {progress.get('exported_at')}: {counts(progress)}")
         readmes = fetch_readmes(progress)
         print(f"{len(readmes)} roadmap(s) newer than the atlas's snapshot: {', '.join(sorted(readmes)) or 'none'}")

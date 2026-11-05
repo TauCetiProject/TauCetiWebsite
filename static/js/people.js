@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", function () {
     TC.timeChart(sel, { dates: dates, series: series, log: true, endLabels: true, tipLimit: 10, label: label, updated: updated });
   }
 
-  // taucetiproject.org publishes these counts only inside its chart, in the chart's title and description.
+  // The participation generator records these counts only inside its chart, in the title and description.
   fetch(TC.LIVE + "participation.svg").then(function (r) {
     if (!r.ok) throw new Error("HTTP " + r.status);
     return r.text();

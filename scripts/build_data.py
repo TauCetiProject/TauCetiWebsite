@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the JSON this site draws that taucetiproject.org does not already publish.
+"""Generate the JSON this site draws beyond what scripts/build_static.sh generates into data/static/.
 
 Writes into data/ (or --out):
 
@@ -11,9 +11,9 @@ Writes into data/ (or --out):
   ci-current.json    the CI fleet's running and queued jobs, copied from the live manifest
 
 Everything else the pages show (progress.json, pr-stats.json, roadmap-completion.json,
-pipeline-health.json and the chart SVGs) is read in the browser from taucetiproject.org,
-which serves it with `Access-Control-Allow-Origin: *`. The CI manifest is the exception: its
-CORS policy admits only taucetiproject.org, so it is copied here at build time.
+pipeline-health.json and the chart SVGs) is in data/static/, which build_static.sh writes first;
+loc-by-topic.json reads progress.json and pr-stats.json from there. The CI manifest's CORS policy
+admits only taucetiproject.org, so it is copied here at build time.
 
 Usage:
   python3 scripts/build_data.py --tauceti-repo PATH [--out data] [--cache data/cache]
@@ -38,7 +38,6 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 OWNER, NAME = "TauCetiProject", "TauCeti"
-SITE = "https://taucetiproject.org"
 CI_MANIFEST = "https://ci-data.taucetiproject.org/v1/ci/manifest.json"
 BORS_PREFIX = "[Merged by Bors] - "
 
@@ -304,7 +303,7 @@ def library_loc(repo: Path) -> dict:
             "files_now": sum(1 for f in files if f.endswith(".lean"))}
 
 
-DOCS = f"{SITE}/docs/"
+DOCS = "https://taucetiproject.github.io/TauCeti/docs/"
 
 
 VOID = {"br", "img", "input", "meta", "link", "hr", "wbr", "source", "col", "area", "base", "embed", "param", "track"}
@@ -470,8 +469,8 @@ def main() -> int:
     step("ci-current", lambda: write(args.out, "ci-current.json", ci_current()))
     if not args.skip_prs:
         def topics():
-            progress = fetch_json(f"{SITE}/static/progress.json")
-            pr_stats = fetch_json(f"{SITE}/static/pr-stats.json")
+            progress = json.loads((args.out / "static" / "progress.json").read_text())
+            pr_stats = json.loads((args.out / "static" / "pr-stats.json").read_text())
             prs = walk_prs(args.cache / "prs.json")
             lean = lean_lines_by_pr(args.tauceti_repo) if args.tauceti_repo else None
             write(args.out, "loc-by-topic.json", loc_by_topic(prs, progress, pr_stats, lean))

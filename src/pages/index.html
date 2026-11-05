@@ -27,7 +27,7 @@
   <h3>Contribute in two lines</h3>
 <pre><code>uv tool install git+https://github.com/TauCetiProject/TauCetiWorker
 tauceti work --loop</code></pre>
-  <p class="small muted">The worker runs as your GitHub account and on your Claude or Codex subscription: each round it picks one job, such as a review, a fix or a new formalization, and stops, and <code>--loop</code> keeps it going. <a href="contribute.html#worker">Prerequisites, and how to try a single round first</a>.</p>
+  <p class="small muted">The worker uses your Claude or Codex subscription and submits changes through your GitHub account. Each round it picks one job (such as a review, a fix, or a new formalization); <code>--loop</code> makes it run until stopped. <a href="contribute.html#worker">Prerequisites, and how to try a single round first</a>.</p>
 </div>
 
 <h2>How it works</h2>
@@ -98,7 +98,7 @@ revisionEndpoint = "https://cache.taucetiproject.org/revisions"</code></pre>
   </li>
   <li>
     <h3>Import a module and check a result</h3>
-    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules; find them in the <a href="https://taucetiproject.org/docs/">API documentation</a>, on <a href="examples.html">Examples</a> or in the <a href="atlas/tauceti/">Atlas</a>. For example, save this as <code>MyProject.lean</code>, the root of the library the lakefile names:</p>
+    <p>The root <code>TauCeti.lean</code> is deliberately empty, so import specific modules; find them in the <a href="{{docs}}">API documentation</a>, on <a href="examples.html">Examples</a> or in the <a href="atlas/tauceti/">Atlas</a>. For example, save this as <code>MyProject.lean</code>, the root of the library the lakefile names:</p>
 <pre><code>import TauCeti.Analysis.Complex.Conformal.RiemannMapping.Existence
 
 #check TauCeti.riemannMapping</code></pre>

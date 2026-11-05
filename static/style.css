@@ -202,7 +202,8 @@ figcaption { color: var(--muted); font-size: 0.86rem; margin-top: 0.45rem; }
 /* The longest bar takes 72% of the track (50% on a phone), leaving room for its value label. */
 .bar .fill { width: calc(var(--w) * 0.72%); }
 .bar .val { left: calc(var(--w) * 0.72%); }
-@media (max-width: 560px) { .bar .fill { width: calc(var(--w) * 0.5%); } .bar .val { left: calc(var(--w) * 0.5%); } }
+.bar .segs.stack { position: absolute; left: 0; top: 2px; height: 16px; width: calc(var(--w) * 0.72%); }
+@media (max-width: 560px) { .bar .fill, .bar .segs.stack { width: calc(var(--w) * 0.5%); } .bar .val { left: calc(var(--w) * 0.5%); } }
 @media (max-width: 560px) { .bar { grid-template-columns: 1fr; gap: 0.1rem; } }
 
 /* ---- tables ---- */

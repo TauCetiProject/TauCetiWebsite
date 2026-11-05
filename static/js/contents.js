@@ -37,14 +37,14 @@ document.addEventListener("DOMContentLoaded", function () {
     var wrap = TC.el("div", { class: "bars" });
     var order = ["done", "partial", "untouched", "unassessed"];
     topics.forEach(function (k) {
-      var t = byTopic[k];
-      var track = TC.el("div", { class: "track" });
-      var segs = TC.el("div", { class: "segs", style: "height:16px;margin-top:2px;width:" + (t.n / max * 100) + "%" });
+      var t = byTopic[k], w = "--w:" + (t.n / max * 100).toFixed(2);
+      var segs = TC.el("div", { class: "segs stack", style: w });
       order.forEach(function (s) {
         if (!t[s]) return;
-        segs.append(TC.el("div", { class: "seg " + s, style: "flex:" + t[s] + " 1 0", title: k + ": " + t[s] + " " + s }));
+        segs.append(TC.el("div", { class: "seg " + s, style: "flex:" + t[s] + " 1 0", title: k + ": " + t[s] + " " + s + " of " + t.n + " layers" }));
       });
-      track.append(segs);
+      var track = TC.el("div", { class: "track" }, [segs,
+        TC.el("span", { class: "val", style: w, text: TC.fmt(t.n) + " layers · " + TC.fmt(t.done || 0) + " done" })]);
       wrap.append(TC.el("div", { class: "bar", title: k + ": " + order.map(function (s) { return (t[s] || 0) + " " + s; }).join(", ") }, [
         TC.el("div", { class: "name" }, [TC.el("a", { href: "structure.html?area=" + encodeURIComponent(t.arxiv), text: k })]), track,
       ]));

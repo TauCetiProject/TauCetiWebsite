@@ -3,8 +3,9 @@
 (function () {
   "use strict";
 
-  // taucetiproject.org publishes its generated data with `Access-Control-Allow-Origin: *`.
-  var LIVE = "https://taucetiproject.org/static/";
+  // The generated data (scripts/build_static.sh) sits in static/ beside this script's directory, at
+  // whatever depth the page is.
+  var LIVE = (document.currentScript && document.currentScript.src || "static/js/common.js").replace(/js\/common\.js(\?.*)?$/, "");
   var cache = {};
 
   function getJSON(url) {

@@ -40,14 +40,23 @@ NAV = [
     ("Home", "index.html"),
     ("Library", [("Overview", "contents.html"), ("Roadmaps", "structure.html"), ("Examples", "examples.html"), ("Roadmap atlas", "atlas/"),
                  ("Statement review", "review/"), ("API docs", DOCS)]),
-    ("Contribute", [("Start in one paste", "contribute.html#start"), ("Run a worker", "contribute.html#worker"),
-                    ("Run a fleet", "contribute.html#fleet"), ("Shape the roadmaps", "contribute.html#roadmap"),
-                    ("PR review", "contribute.html#review"),
-                         ("Statement review", "contribute.html#statements")]),
+    ("Contribute", [("Quickstart", "contribute.html"), ("Run a worker", "contribute/worker.html"),
+                    ("Run a fleet", "contribute/fleet.html"), ("Write a roadmap", "contribute/write-roadmap.html"),
+                    ("Review roadmaps", "contribute/review-roadmaps.html"), ("Statement review", "contribute/statements.html")]),
     ("Project", [("News", "blog/"), ("Growth", "growth.html"), ("People", "people.html"), ("Health", "health.html"),
                  ("Acknowledgments", "acknowledgments.html")]),
     ("FAQ", "faq.html"),
 ]
+# The Contribute pages' own bar, {{contribute_nav}}: (label, page, blurb).
+CONTRIBUTE = [
+    ("Quickstart", "contribute.html", "Hand your coding agent one paste; it sets up and runs a first round."),
+    ("Run a worker", "contribute/worker.html", "Install, check, do one unit of work. Ten minutes on a laptop."),
+    ("Run a fleet", "contribute/fleet.html", "Persistent, sandboxed workers, paced under your quota and GitHub’s limits."),
+    ("Write a roadmap", "contribute/write-roadmap.html", "Open a pull request for your area, or ask for a roadmap on Zulip."),
+    ("Review roadmaps", "contribute/review-roadmaps.html", "Say whether an AI-approved roadmap has the right scope and approach."),
+    ("Statement review", "contribute/statements.html", "Say from the browser whether a declaration states what it should."),
+]
+
 # A page reached through another one in the bar is shown as that one.
 SECTION = {"roadmap.html": "structure.html"}
 
@@ -108,6 +117,16 @@ def data_links(files: list[str], root: str = "") -> str:
         links.append(f'<a href="{html.escape(url)}" download>{html.escape(url.rsplit("/", 1)[-1])}</a>')
     return ("        <p class=\"small muted data-links\">The data behind this page, to download: "
             + " · ".join(links) + ".</p>")
+
+
+def contribute_nav(current: str, root: str) -> str:
+    cards = []
+    for label, page, blurb in CONTRIBUTE:
+        here = page == current
+        cards.append(f'  <a class="card{" accent" if here else ""}" href="{root}{page}"'
+                     + (' aria-current="page"' if here else "")
+                     + f'><h3>{html.escape(label)}</h3><p>{html.escape(blurb)}</p></a>')
+    return '<nav class="cards subnav" aria-label="Ways to contribute">\n' + "\n".join(cards) + "\n</nav>"
 
 
 def byline(meta: dict) -> str:
@@ -229,6 +248,7 @@ def main() -> None:
                 .replace("{{release_tag}}", html.escape(release["tag"]))
                 .replace("{{release_toolchain}}", html.escape(release["toolchain"]))
                 .replace("{{release_date}}", release["date"])
+                .replace("{{contribute_nav}}", contribute_nav(file, root))
                 .replace("{{docs}}", DOCS)
                 .replace("{{root}}", root)
                 .replace("{{review_data}}", html.escape(args.review_data.rstrip("/") + "/")))

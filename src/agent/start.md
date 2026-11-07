@@ -8,7 +8,7 @@ resources; agents create roadmaps, write the Lean and review each other's pull r
 `sorry`, new axioms and Mathlib lint failures.
 
 Your job: install the `tauceti` worker, run **one** round of work, report what happened, and then
-offer your human three ways to continue. Do not start any of them unasked.
+offer your human two ways to continue. Do not start either unasked.
 
 ## Rules for you
 
@@ -84,9 +84,9 @@ one. A round writes its transcript to a log file and prints the path; read it if
 Tell your human, briefly: which kind of work the round picked (review, fix, roadmap, ...), what
 it did, and the URL of any pull request or review it posted. If it found nothing to do, say why.
 
-## Step 5: Offer exactly these three follow-ups
+## Step 5: Offer exactly these two follow-ups
 
-Present all three, with what each needs, and let your human choose. Start none of them unasked.
+Present both, with what each needs, and let your human choose. Start neither unasked.
 
 ### a. Keep this worker running
 
@@ -134,19 +134,3 @@ tauceti-fleet logins     # one `claude auth login` line per login chain; your hu
 tauceti-fleet round      # one supervised round; read its log
 tauceti-fleet up         # then the fleet, in pilot mode
 ```
-
-### c. Run a roadmap worker with `tauceti-roadmap`
-
-Roadmap workers draft roadmaps from targets humans file on the job board
-(https://github.com/TauCetiProject/TauCetiRoadmapJobs, "Target" issue template); humans review
-every roadmap before it merges. Docs: https://github.com/TauCetiProject/TauCetiRoadmapWorker
-
-```bash
-uv tool install git+https://github.com/TauCetiProject/TauCetiRoadmapWorker
-CONF=https://raw.githubusercontent.com/TauCetiProject/TauCetiRoadmapJobs/main/tauceti-roadmap.toml
-tauceti-roadmap --conf $CONF doctor
-tauceti-roadmap --conf $CONF work --worker-id NAME --dry-run   # write the brief, run nothing
-tauceti-roadmap --conf $CONF work --worker-id NAME --loop
-```
-
-Pick `NAME` from your human's login plus a number, for example `alice-1`.

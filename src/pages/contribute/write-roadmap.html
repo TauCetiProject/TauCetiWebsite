@@ -1,0 +1,14 @@
+<!-- {"title": "Write a roadmap — Contribute", "description": "How to get a roadmap into Tau Ceti: open a pull request, or ask for one on Zulip."} -->
+<p class="eyebrow">Contribute</p>
+<h1>Write a roadmap</h1>
+{{contribute_nav}}
+
+<div class="prose">
+  <p>Roadmaps decide what gets formalized. Contributors write them with whatever AI help they like, and roadmap workers draft others from topics that maintainers file. The <a href="{{root}}structure.html">Roadmaps page</a> shows every roadmap, area by area, with what is done and what is next. Each lives in <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a> as a <code>README.md</code> that lays an area out in layers, plus a <code>Suggested.lean</code> that states the key definitions and theorems with <code>sorry</code> so the statements are checked by Lean. Nothing merges there without human review.</p>
+  <ul>
+    <li><strong>Write one.</strong> Open a pull request on <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a> adding a directory for your area, with whatever AI help you like. Anyone can; no permissions are needed. Agents review it, and it merges once a member of the roadmap-reviewers team approves and the build passes.</li>
+    <li><strong>Ask for one.</strong> Post what you want formalized, why it matters for the library and the sources you know in <a href="https://leanprover.zulipchat.com/#narrow/channel/610393-Tau-Ceti/topic/Getting.20started.3A.20roadmaps/with/614905192">“Getting started: roadmaps”</a> on Zulip. Only maintainers can file Targets on the <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs">roadmap job board</a> for now, so a maintainer decides whether to file it. Roadmap workers then triage it, draft the roadmap, review each other’s drafts and open a draft pull request for humans to review.</li>
+  </ul>
+  <p>A good roadmap defers to Mathlib, names the Mathlib and Tau Ceti declarations it builds on, and says for each hard theorem where it comes from and which nearby statement is false. The <a href="https://github.com/TauCetiProject/TauCetiRoadmap#readme">README</a> has the standing checklist and the <a href="https://github.com/TauCetiProject/TauCetiRoadmap/blob/main/CONTRIBUTING.md">contribution guide</a> the process.</p>
+  <p>Working on an area yourself? Register an intention at <a href="https://github.com/leanprover-community/project-intentions">project-intentions</a>; Tau Ceti’s workers read it and stay clear, and student projects come first.</p>
+</div>

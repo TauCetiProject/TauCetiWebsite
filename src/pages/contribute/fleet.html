@@ -1,0 +1,40 @@
+<!-- {"title": "Run a fleet — Contribute", "description": "How to run several Tau Ceti workers unattended: persistent workers under the built-in manager, or a managed fleet."} -->
+<p class="eyebrow">Contribute</p>
+<h1>Run a fleet</h1>
+{{contribute_nav}}
+
+<p class="prose">A fleet is several workers that run unattended. Workers coordinate through GitHub claims rather than through each other: a worker takes a lease on its job, and claims steer it away from work another operator has registered, so adding workers adds throughput rather than duplicate work.</p>
+
+<div data-tabs>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" aria-controls="fleet-simple" id="t-simple">Persistent workers</button>
+    <button role="tab" aria-selected="false" aria-controls="fleet-full" id="t-full">A managed fleet</button>
+  </div>
+  <div class="tabpanel" id="fleet-simple" role="tabpanel" aria-labelledby="t-simple">
+    <p class="prose">The worker has a built-in manager. Describe the workers you want and it keeps them running, restarting any that fail:</p>
+<pre><code>tauceti workers add                         # worker1: the whole cascade
+tauceti workers add reviewer --only review  # a focused, named worker
+tauceti workers                             # desired and actual state
+tauceti workers logs --follow reviewer</code></pre>
+    <p class="prose">To keep them running after you log out and across reboots, hand the manager to a user service (systemd on Linux, a LaunchAgent on macOS):</p>
+<pre><code>tauceti workers manager-stop --leave-workers
+tauceti workers service install</code></pre>
+    <p class="small muted">To pay per token instead of by subscription, add <code>--agent claude --claude-billing api --budget</code> and grant a dollar budget with <code>tauceti budget --grant 100</code>; workers share it. Details in the <a href="https://github.com/TauCetiProject/TauCetiWorker/blob/main/docs/workers.md">workers documentation</a>.</p>
+  </div>
+  <div class="tabpanel" id="fleet-full" role="tabpanel" aria-labelledby="t-full" hidden>
+    <p class="prose"><a href="https://github.com/roed-math/tauceti-fleet"><code>tauceti-fleet</code></a> runs several workers unattended, optionally against a <strong>target list</strong> of roadmap milestones you want proved. Authors open pull requests for the next milestone, fixers answer review and repair CI, reviewers review other people’s pull requests in return, and the fleet reshapes itself from the backlog after every round. It starts in pilot mode, with one author, one fixer and one reviewer.</p>
+    <p class="prose">You need:</p>
+    <ul class="prose">
+      <li><strong>A host.</strong> Ubuntu with Incus, so every round runs in an egress-denied container; <code>up.sandbox = "host"</code> runs without one, which is fine for trying it out.</li>
+      <li><strong>The GitHub account it acts as.</strong> Every GitHub request goes through a rate gate: set <code>gate.mutations_per_hour</code> and <code>gate.reads_per_hour</code> in <code>fleet.toml</code> (40 and 600 by default) to keep the fleet under GitHub’s rate limits, and split them between fleets that share an account.</li>
+      <li><strong>A Claude subscription or an API key</strong>. Codex is optional; it adds authors that use Codex first.</li>
+      <li><strong>A target list</strong> of milestones from the <a href="{{root}}structure.html">roadmaps</a>, or <code>--targets none</code>, in which case each author picks a roadmap area at random.</li>
+    </ul>
+    <p class="prose">On a host prepared as in <a href="https://github.com/roed-math/tauceti-fleet/blob/main/docs/setup.md">the setup guide</a>:</p>
+<pre><code>tauceti-fleet init --name myfleet --targets targets/my_targets.md --github-login LOGIN
+tauceti-fleet logins     # one `claude auth login` line per login chain still missing
+tauceti-fleet round      # one supervised round first; read its log
+tauceti-fleet up         # then the fleet, in pilot mode</code></pre>
+    <p class="small muted"><code>up</code> starts in pilot mode (one author, sandboxed rounds) until you turn it off. <code>tauceti-fleet attention</code> collects everything that needs a human.</p>
+  </div>
+</div>

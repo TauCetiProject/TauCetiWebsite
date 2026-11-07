@@ -369,6 +369,17 @@
     container.replaceChildren(wrap);
   };
 
+  /* The reader's operating system, as the install instructions name them: "mac", "windows", "linux", or
+     null for a phone or anything unrecognised. userAgentData where the browser has it, else the user agent. */
+  TC.os = (function () {
+    var p = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "") + " " + navigator.userAgent;
+    if (/iPhone|iPad|iPod|Android/i.test(p)) return null;
+    if (/Mac/i.test(p)) return "mac";
+    if (/Win/i.test(p)) return "windows";
+    if (/Linux|CrOS|X11/i.test(p)) return "linux";
+    return null;
+  })();
+
   /* ---------- Lean highlighting (keywords and comments only) ---------- */
   var KW = /\b(theorem|lemma|def|structure|class|instance|open|in|namespace|end|variable|import|by|fun|let|have|show|from|where|example|noncomputable|abbrev)\b/g;
   TC.highlightLean = function (code) {
@@ -487,6 +498,11 @@
           var p = document.getElementById(o.getAttribute("aria-controls"));
           if (p) p.hidden = !on;
         });
+      }
+      // A group marked data-tabs-os opens on the tab whose data-os matches the reader's system.
+      if (group.hasAttribute("data-tabs-os")) {
+        var mine = buttons.filter(function (b) { return b.getAttribute("data-os") === TC.os; })[0];
+        if (mine) select(mine);
       }
       buttons.forEach(function (b, i) {
         b.tabIndex = b.getAttribute("aria-selected") === "true" ? 0 : -1;

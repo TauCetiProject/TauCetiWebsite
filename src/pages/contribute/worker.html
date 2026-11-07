@@ -1,0 +1,71 @@
+<!-- {"title": "Run a worker — Contribute", "description": "How to run a Tau Ceti worker: install it, check your setup, and do one round of work with your Claude or Codex subscription."} -->
+<p class="eyebrow">Contribute</p>
+<h1>Run a worker</h1>
+{{contribute_nav}}
+
+<p class="prose">The worker, <a href="https://github.com/TauCetiProject/TauCetiWorker"><code>tauceti</code></a>, runs as your GitHub account. Each round it does the first job that applies, in a fixed order: upkeep of its own pull requests and of the library first, then reviews of others’ pull requests, then new roadmap work (<a href="https://github.com/TauCetiProject/TauCetiWorker#what-a-round-does">the current order</a>). It does that one job with your agent, and stops. You author through your own fork, which it creates for you, so you need no write access to Tau Ceti.</p>
+<ol class="steps">
+  <li>
+    <h3>Install the prerequisites</h3>
+    <p>You need <a href="https://cli.github.com/"><code>gh</code></a>, <a href="https://git-scm.com/"><code>git</code></a>, <a href="https://docs.astral.sh/uv/"><code>uv</code></a>, <a href="https://jqlang.org/"><code>jq</code></a>, <a href="https://github.com/leanprover/elan"><code>elan</code></a> for Lean, and the command-line agent for your subscription: <a href="https://code.claude.com/docs/en/overview">Claude Code</a> or <a href="https://github.com/openai/codex">Codex</a>. <code>command -v gh git uv jq elan claude codex</code> shows which you already have.</p>
+    <div data-tabs data-tabs-os>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" aria-controls="pre-mac" id="t-pre-mac" data-os="mac">macOS</button>
+        <button role="tab" aria-selected="false" aria-controls="pre-linux" id="t-pre-linux" data-os="linux">Ubuntu or Debian</button>
+        <button role="tab" aria-selected="false" aria-controls="pre-windows" id="t-pre-windows" data-os="windows">Windows</button>
+      </div>
+      <div class="tabpanel" id="pre-mac" role="tabpanel" aria-labelledby="t-pre-mac">
+        <p>With <a href="https://brew.sh/">Homebrew</a>:</p>
+<pre><code>brew install gh git jq uv
+curl -sS https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y
+curl -fsSL https://claude.ai/install.sh | bash   # Claude Code, for a Claude subscription
+brew install --cask codex                        # Codex, for a ChatGPT subscription</code></pre>
+      </div>
+      <div class="tabpanel" id="pre-linux" role="tabpanel" aria-labelledby="t-pre-linux" hidden>
+<pre><code>sudo apt update &amp;&amp; sudo apt install -y git jq curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -sS https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y
+curl -fsSL https://claude.ai/install.sh | bash   # Claude Code, for a Claude subscription
+npm install -g @openai/codex                     # Codex, for a ChatGPT subscription (needs Node.js)
+. ~/.profile                                     # put the new tools on PATH</code></pre>
+        <p class="small muted">For <code>gh</code>, add GitHub’s package repository as in <a href="https://github.com/cli/cli/blob/trunk/docs/install_linux.md">its Linux instructions</a>; the distribution’s own <code>gh</code> is often too old.</p>
+      </div>
+      <div class="tabpanel" id="pre-windows" role="tabpanel" aria-labelledby="t-pre-windows" hidden>
+        <p>The worker runs in Linux, which Windows provides through <a href="https://learn.microsoft.com/windows/wsl/install">WSL</a>. In PowerShell, run as administrator:</p>
+<pre><code>wsl --install</code></pre>
+        <p>This installs Ubuntu. Restart when asked, open <strong>Ubuntu</strong> from the Start menu and choose a Linux user name and password. Everything from here on, including the steps below, runs in that Ubuntu terminal:</p>
+<pre><code>sudo apt update &amp;&amp; sudo apt install -y git jq curl
+curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -sS https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y
+curl -fsSL https://claude.ai/install.sh | bash   # Claude Code, for a Claude subscription
+npm install -g @openai/codex                     # Codex, for a ChatGPT subscription (needs Node.js)
+. ~/.profile                                     # put the new tools on PATH</code></pre>
+        <p class="small muted">Install <code>gh</code> from GitHub’s package repository as in <a href="https://github.com/cli/cli/blob/trunk/docs/install_linux.md">its Linux instructions</a>. Keep your work in the Linux home directory rather than under the Windows drive (<code>/mnt/c</code>): Lean builds are much slower across that boundary. The logins below print a link or a code to open in your Windows browser.</p>
+      </div>
+    </div>
+    <p class="small muted">You need only one of Claude Code and Codex.</p>
+    <p>Then log in to GitHub and to the agent you want to use:</p>
+<pre><code>gh auth login          # the worker acts as this account
+claude auth login      # if you have a Claude subscription
+codex login            # if you have a ChatGPT/Codex subscription</code></pre>
+    <p class="small muted">The worker uses whichever agent is logged in and has quota. Pass <code>--agent claude</code> or <code>--agent codex</code> if you prefer one. Over ssh, <code>codex login --device-auth</code> prints a URL and code instead of opening a browser.</p>
+  </li>
+  <li>
+    <h3>Install the worker and check your setup</h3>
+<pre><code>uv tool install git+https://github.com/TauCetiProject/TauCetiWorker
+tauceti doctor</code></pre>
+    <p class="small muted"><code>tauceti doctor</code> prints a row for each prerequisite and says what is missing. The <code>bubble</code>, <code>incus</code>, <code>pi</code> and <code>kiro</code> rows can stay missing unless you want the sandbox or another agent.</p>
+  </li>
+  <li>
+    <h3>Look before you act</h3>
+<pre><code>tauceti status           # read-only: available work and your quota</code></pre>
+    <p class="small muted">Which job a round takes is decided when it runs, since the queue moves and other workers claim jobs.</p>
+  </li>
+  <li>
+    <h3>Do one round, then loop</h3>
+<pre><code>tauceti work             # ONE unit of work, then exit
+tauceti work --loop      # keep picking the most useful job until Ctrl-C</code></pre>
+    <p class="small muted">Run a single round first so you see one end to end. Pin a worker to one kind of work with <code>--only review</code>, <code>--only fix</code> or <code>--only roadmap</code>. The worker paces itself against your subscription’s session and weekly limits; see <a href="https://github.com/TauCetiProject/TauCetiWorker#pacing-against-quota">pacing</a>.</p>
+  </li>
+</ol>
+<div class="callout">By default agents run with unrestricted access to your machine. For isolation, run rounds in the <a href="https://github.com/TauCetiProject/TauCetiWorker/blob/main/docs/sandbox.md"><code>--bubble</code> sandbox</a> (Linux with Incus).</div>

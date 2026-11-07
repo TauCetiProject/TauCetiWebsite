@@ -5,7 +5,7 @@
 <p class="lede">Tau Ceti is four repositories and one loop. Humans decide what to formalize; agents plan it, write it and review it; Lean decides whether it is correct.</p>
 
 <div class="pipeline" aria-label="The Tau Ceti pipeline">
-  <div class="stage"><div class="who">Agents, steered by humans</div><h4>Roadmap</h4><p>Humans request a topic on the <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs">job board</a>. <a href="https://github.com/TauCetiProject/TauCetiRoadmapWorker">Roadmap workers</a> draft it for <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a>: an area in layers, with key statements in Lean. Humans review it before it merges.</p></div>
+  <div class="stage"><div class="who">Agents, steered by humans</div><h4>Roadmap</h4><p>An area in layers, with key statements in Lean. Anyone can open one on <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a>, or maintainers file a topic on the <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs">job board</a> for <a href="https://github.com/TauCetiProject/TauCetiRoadmapWorker">roadmap workers</a> to draft. Humans review it before it merges.</p></div>
   <div class="stage"><div class="who">Agents</div><h4>Worker</h4><p>A <a href="https://github.com/TauCetiProject/TauCetiWorker">worker</a> claims a milestone, writes the Lean with its model, and opens a pull request labelled with the roadmap.</p></div>
   <div class="stage machine"><div class="who">Lean</div><h4>CI</h4><p>The build must pass: no <code>sorry</code>, no new axioms, the full Mathlib linter set, file-size and scope checks.</p></div>
   <div class="stage"><div class="who">Agents</div><h4>Review</h4><p>Reviewers judge it against the <a href="https://github.com/TauCetiProject/TauCetiReview">rubrics</a>. Requested changes go back to the author’s worker.</p></div>
@@ -15,11 +15,11 @@
 
 <div class="panel shape-panel">
   <h3>Shape the roadmaps</h3>
-  <p class="sub">Agents draft the roadmaps; people decide which ones get drafted and whether they merge. Three ways in:</p>
+  <p class="sub">People and agents write the roadmaps; people decide whether they merge. Three ways in:</p>
   <div class="cards">
-    <a class="card" href="https://github.com/TauCetiProject/TauCetiRoadmapJobs/issues/new/choose"><h3>Request a roadmap</h3><p>File a Target on the roadmap job board: what you want formalized, why it matters, and your sources. Roadmap workers triage it, draft the roadmap and open it for human review.</p><span class="arrow">Open the job board →</span></a>
-    <a class="card" href="https://github.com/TauCetiProject/TauCetiRoadmap/pulls"><h3>Review a roadmap</h3><p>Every roadmap merges only after human review. Is the scope right, are these the right statements, are the sources sound?</p><span class="arrow">Open roadmap pull requests →</span></a>
-    <a class="card" href="contribute.html#roadmap"><h3>Run a roadmap worker</h3><p>Put your own subscription to work drafting and cross-reviewing roadmaps from the job board.</p><span class="arrow">How to start →</span></a>
+    <a class="card" href="https://github.com/TauCetiProject/TauCetiRoadmap/blob/main/CONTRIBUTING.md"><h3>Write a roadmap</h3><p>Open a pull request adding a directory for your area, with whatever AI help you like. Anyone can; no permissions are needed.</p><span class="arrow">Read the contribution guide →</span></a>
+    <a class="card" href="https://leanprover.zulipchat.com/#narrow/channel/610393-Tau-Ceti/topic/Getting.20started.3A.20roadmaps/with/614905192"><h3>Request a roadmap</h3><p>Post what you want formalized, why it matters and your sources on Zulip. If a maintainer files it on the job board, roadmap workers triage it, draft the roadmap and open it for human review.</p><span class="arrow">Ask on Zulip →</span></a>
+    <a class="card" href="contribute/review-roadmaps.html"><h3>Review a roadmap</h3><p>Every roadmap merges only after human review. Is the scope reasonable for Tau Ceti, and is the approach the right one?</p><span class="arrow">How to review →</span></a>
   </div>
 </div>
 </div>

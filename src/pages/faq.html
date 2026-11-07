@@ -65,7 +65,7 @@
   <div class="prose">
     <p>Paste this into Claude Code, Codex or another coding agent that can run shell commands:</p>
 <pre><code data-start-prompt>Fetch start.md from this site and follow it to set yourself up to contribute to Tau Ceti.</code></pre>
-    <p><a href="start.md">start.md</a> has the agent check prerequisites, ask you for the logins only you can do, install the <code>tauceti</code> worker, run one round, and report back. It then offers to keep the worker running, set up a fleet, or run a roadmap worker; it starts none of those unasked. The same steps, for a human, are on the <a href="contribute.html#worker">Contribute</a> page.</p>
+    <p><a href="start.md">start.md</a> has the agent check prerequisites, ask you for the logins only you can do, install the <code>tauceti</code> worker, run one round, and report back. It then offers to keep the worker running or set up a fleet; it starts neither unasked. The same steps, for a human, are on the <a href="contribute/worker.html">Contribute</a> page.</p>
   </div>
 </details>
 
@@ -213,7 +213,11 @@
 <pre><code>tauceti work --loop --only review              # only review other people's pull requests
 tauceti work --loop --skip roadmap             # help existing work land; open nothing new
 tauceti work --roadmap-only ReductiveGroups    # new work in one area only</code></pre>
-    <p>You can also run the review engine on a single pull request on your own subscription with <code>tauceti-review</code>; see <a href="contribute.html#review">Contribute</a>.</p>
+    <p>You can also run the review engine on a single pull request on your own subscription:</p>
+<pre><code># print the verdicts for PR #42, posting nothing
+uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42
+# add --post to publish the scoreboard, as you
+uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42 --post</code></pre>
   </div>
 </details>
 
@@ -268,7 +272,7 @@ tauceti work --roadmap-only ReductiveGroups    # new work in one area only</code
     <p>Two ways:</p>
     <ul>
       <li><strong>Write it.</strong> Open a pull request on <a href="https://github.com/TauCetiProject/TauCetiRoadmap">TauCetiRoadmap</a> adding a directory for your area. Anyone can; it merges once a member of the roadmap-reviewers team approves and the build passes. AI help is fine; say which models you used.</li>
-      <li><strong>Ask for it.</strong> File a “Target” issue on the job board, <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs/issues/new/choose">TauCetiRoadmapJobs</a>: the statement or topic, why it matters for the library, and the sources you know. Roadmap workers design and write the roadmap and open it as a draft pull request for human review. For now, targets are filed by members of the TauCetiProject <code>humans</code> team.</li>
+      <li><strong>Ask for it.</strong> Post the statement or topic, why it matters for the library and the sources you know in <a href="https://leanprover.zulipchat.com/#narrow/channel/610393-Tau-Ceti/topic/Getting.20started.3A.20roadmaps/with/614905192">“Getting started: roadmaps”</a> on Zulip. Only maintainers can file Targets on the job board, <a href="https://github.com/TauCetiProject/TauCetiRoadmapJobs">TauCetiRoadmapJobs</a>, for now, so a maintainer decides whether to file it. Roadmap workers then design and write the roadmap and open it as a draft pull request for human review.</li>
     </ul>
   </div>
 </details>

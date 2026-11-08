@@ -21,9 +21,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "scripts"))
 import build_site  # noqa: E402
-
-# Voyager's records and the roadmaps facet are made by the review data repository's scripts.
-sys.path.append(str(build_site.DATA_REPO / "scripts"))
+# Voyager's records, the roadmaps facet and the standard reviews are made by the review data
+# repository's scripts, which build_site puts on the path.
 import roadmaps  # noqa: E402
 import standard  # noqa: E402
 import voyager  # noqa: E402

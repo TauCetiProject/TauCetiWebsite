@@ -19,11 +19,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import ROOT, load_settings  # noqa: E402
-import site_data  # noqa: E402
 
 # The store and the settings are the review data repository's: TAU_REVIEW_DATA, else a checkout beside
-# the website's.
+# the website's. So are the scripts the build shares with its intake (standard.py, the format of a
+# standard review), after this directory's own.
 DATA_REPO = Path(os.environ.get("TAU_REVIEW_DATA") or ROOT.parents[1] / "tauceti-review-data")
+sys.path.append(str(DATA_REPO / "scripts"))
+import site_data  # noqa: E402
 
 
 class SiteTooLarge(RuntimeError):

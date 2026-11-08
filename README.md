@@ -14,10 +14,12 @@ Two apps are served beside them:
   imported with its history from
   [cbirkbeck/tauceti-reviewed-by-test](https://github.com/cbirkbeck/tauceti-reviewed-by-test). Its data
   and pipeline (the evidence store, the issue forms and intake, following Tau Ceti, Voyager, the
-  datasets, the answerer) are a separate repository, `tauceti-review-data`, because they grow with Tau
-  Ceti. That repository builds the site with this app and publishes it on its own Pages; the app here
-  reads that `data/` (`REVIEW_DATA_URL`). The review's build and tests find the data repository through
-  `TAU_REVIEW_DATA`, or a checkout beside this one.
+  datasets, the answerer, the fixer) are a separate repository, because they grow with Tau Ceti. For now
+  that is still cbirkbeck/tauceti-reviewed-by-test (`REVIEW_DATA_REPO`). It publishes the `data/` the app
+  here reads on its own Pages (`REVIEW_DATA_URL`, by default that site's), and builds that site with its
+  own copy of the app, so changes made to the app there are brought here by hand: each such commit names
+  its original in an `Imported-from:` line. The review's build and tests find the data repository through
+  `TAU_REVIEW_DATA`, or a checkout `tauceti-review-data` beside this one.
 
 `.github/workflows/pages.yml` deploys all three together, at `/`, `/atlas/` and `/review/`, once
 the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).

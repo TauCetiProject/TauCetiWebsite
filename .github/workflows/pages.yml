@@ -134,8 +134,8 @@ jobs:
           path: _atlas
           retention-days: 2
 
-  # The review app's tests, against the review data repository's forms and scripts. Until that
-  # repository exists, the review's existing repository has the same ones.
+  # The review app's tests, against the review data repository's forms and scripts. For now that is the
+  # review's original repository, which vars.REVIEW_DATA_REPO names.
   review:
     # Playwright 1.57 can't install Chromium's dependencies on Ubuntu 26.04, which ubuntu-latest now is.
     runs-on: ubuntu-24.04

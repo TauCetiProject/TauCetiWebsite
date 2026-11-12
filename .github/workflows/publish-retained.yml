@@ -1,0 +1,80 @@
+name: Publish with retained data
+
+# Publish page/code changes with the last successful site's data and Atlas.
+# The regular Pages workflow remains responsible for regenerating their histories.
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: Successful main-branch Pages run whose published data and Atlas to retain
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the source publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source_run }}
+        run: |
+          [[ "$SOURCE_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" \
+            --jq '[.conclusion == "success", .head_branch == "main", .path == ".github/workflows/pages.yml"] | all' \
+            | grep -qx true
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: retained
+          run-id: ${{ inputs.source_run }}
+          github-token: ${{ github.token }}
+      - name: Restore the published tree
+        run: |
+          mkdir published
+          tar -xf retained/artifact.tar -C published
+          test -s published/data/library-loc.json
+          test -s published/static/progress.json
+          test -s published/atlas/index.html
+      - name: Refresh the CI snapshot and fixed Mathlib comparison
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/project"
+          gh api repos/TauCetiProject/TauCeti/contents/lake-manifest.json --jq .content \
+            | base64 -d > "$RUNNER_TEMP/project/lake-manifest.json"
+          python3 - "$RUNNER_TEMP/project" <<'PY'
+          import sys
+          from pathlib import Path
+          from scripts.build_data import ci_current, mathlib_baseline, write
+          out = Path("published/data")
+          write(out, "ci-current.json", ci_current())
+          write(out, "mathlib-baseline.json", mathlib_baseline(Path(sys.argv[1]), Path("retained/cache")))
+          PY
+      - name: Build the updated pages and preserve generated charts and Atlas
+        env:
+          REVIEW_DATA_URL: ${{ vars.REVIEW_DATA_URL }}
+        run: |
+          python3 scripts/build_site.py --out updated --data published/data
+          cp -a updated/. published/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: published
+      - id: deployment
+        uses: actions/deploy-pages@v4

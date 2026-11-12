@@ -11,6 +11,7 @@
     <li>are there parts of proofs that appear several times in a file and could be turned into lemmas?</li>
   </ol>
   <p>We evaluated Mathlib, Tau Ceti, Formal Frontier, Lean Pool, Anthropic’s FLT, OpenAI’s mathematical corpus and Axiom’s CFSG proof (with more partial results for the last two).</p>
+  <p>Edit (2026-11-05): we’ve extended the audits to include Axiom’s Stacks library.</p>
   <p>For each of the indicators, we sample randomly theorems (for the first two) or files (for the third one) from the library, and ask an AI judge to answer the question. We then compute the percentage of theorems/files that are flagged by the AI judge, and also report 95% confidence intervals for the true rate. We found that the exact percentages depend on the AI model used (more expensive models report more issues), but that the groups and relative gaps are consistent across models.</p>
   <p>The results in the tables below confirm the assumption that Mathlib is high-quality, show that Tau Ceti and Formal Frontier are not far behind on those metrics, and that the other libraries have generally higher percentages of flagged entries (although the OpenAI corpus has a very low rate of Mathlib duplicates). Tau Ceti and Formal Frontier are actively trying to take the lessons learned in Mathlib to guide the AI formalization process, and our takeaway from the results is that those efforts, while not perfect, are paying off.</p>
   <p>The indicators we looked at are very partial (they do not measure anything about the quality of definitions, for a start), but they are easy to compute and give a preliminary signal. We would love to turn this into a more systematic audit. We have inference to run the evaluations but little time to further develop the methodology. If you are interested in helping, please reach out to us.</p>
@@ -31,6 +32,7 @@
       <tr><th scope="row">Anthropic FLT</th><td>203/1,000 · <strong>20.3%</strong> [17.9%, 22.9%]</td><td>52/300 · <strong>17.3%</strong> [13.5%, 22.0%]</td></tr>
       <tr><th scope="row">OpenAI Math</th><td>17/100 · <strong>17.0%</strong> [10.9%, 25.5%]</td><td>48/300 · <strong>16.0%</strong> [12.3%, 20.6%]</td></tr>
       <tr><th scope="row">AxiomMath CFSG</th><td>—</td><td>70/300 · <strong>23.3%</strong> [18.9%, 28.4%]</td></tr>
+      <tr><th scope="row">AxiomMath Stacks</th><td>103/1,000 · <strong>10.3%</strong> [8.6%, 12.3%]</td><td>—</td></tr>
       </tbody>
     </table>
   </div>
@@ -48,6 +50,7 @@
       <tr><th scope="row">Anthropic FLT</th><td>137/1,000 · <strong>13.7%</strong> [11.7%, 16.0%]</td><td>118/1,000 · <strong>11.8%</strong> [9.9%, 13.9%]</td></tr>
       <tr><th scope="row">OpenAI Math</th><td>1/100 · <strong>1.0%</strong> [0.2%, 5.4%]</td><td>8/300 · <strong>2.7%</strong> [1.4%, 5.2%]</td></tr>
       <tr><th scope="row">AxiomMath CFSG</th><td>—</td><td>15/300 · <strong>5.0%</strong> [3.1%, 8.1%]</td></tr>
+      <tr><th scope="row">AxiomMath Stacks</th><td>64/1,000 · <strong>6.4%</strong> [5.0%, 8.1%]</td><td>—</td></tr>
       </tbody>
     </table>
   </div>
@@ -66,9 +69,10 @@
       <tr><th scope="row">Anthropic FLT</th><td>189/372 · <strong>50.8%</strong> [45.7%, 55.9%]</td></tr>
       <tr><th scope="row">OpenAI Math</th><td>154/372 · <strong>41.4%</strong> [36.5%, 46.5%]</td></tr>
       <tr><th scope="row">AxiomMath CFSG</th><td>162/300 · <strong>54.0%</strong> [48.3%, 59.6%]</td></tr>
+      <tr><th scope="row">AxiomMath Stacks</th><td>118/372 · <strong>31.7%</strong> [27.2%, 36.6%]</td></tr>
       </tbody>
     </table>
   </div>
-  <p>Mathlib and Tau Ceti have the lowest duplication rates, Formal Frontier is in the middle, and the other libraries have higher rates.</p>
+  <p>Mathlib and Tau Ceti have the lowest duplication rates, AxiomMath Stacks and Formal Frontier are in the middle, and the other libraries have higher rates.</p>
   <p>We started testing other models, and did a few second passes to check the flags, but lots of work remains. All the results, prompts and other details are available in the <a href="https://github.com/RemyDegenne/lean-quality-indicators">lean-quality-indicators repository</a>.</p>
 </article>

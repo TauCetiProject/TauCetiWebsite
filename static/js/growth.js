@@ -13,8 +13,27 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }).catch(function (e) { TC.fail("#decls", e); });
 
-  TC.local("library-loc.json").then(function (l) {
-    TC.timeChart("#loc", { dates: l.dates, updated: l.generated_at, series: [{ name: "Lines of Lean", values: l.lines, color: S[1] }], area: true, label: "Lines of Lean by day" });
+  Promise.all([TC.local("library-loc.json"), TC.local("mathlib-baseline.json").catch(function () { return null; })]).then(function (data) {
+    var l = data[0], baseline = data[1], counts = new Map(l.dates.map(function (d, i) { return [d, l.lines[i]]; }));
+    if (!baseline || !(baseline.lines > 0) || !/^[0-9a-f]{40}$/.test(baseline.ref || "")) baseline = null;
+    function growth(day, days) {
+      var previous = new Date(day + "T00:00:00Z");
+      previous.setUTCDate(previous.getUTCDate() - days);
+      var before = counts.get(previous.toISOString().slice(0, 10));
+      return before == null ? null : (counts.get(day) - before) / days;
+    }
+    function signed(value) { return value == null ? "—" : (value > 0 ? "+" : "") + TC.fmt(value); }
+    TC.timeChart("#loc", {
+      dates: l.dates, updated: l.generated_at, series: [{ name: "Lines of Lean", values: l.lines, color: S[1] }],
+      area: true, label: "Lines of Lean by day", yMax: Math.ceil(Math.max.apply(null, l.lines) * 1.04 / 100000) * 100000 || 1,
+      tipRows: function (day) {
+        var rows = [{ label: "change since yesterday", value: signed(growth(day, 1)) },
+                    { label: "LOC/day, trailing 7 days", value: signed(growth(day, 7)) }];
+        if (baseline) rows.push({ label: "× Mathlib", value: (counts.get(day) / baseline.lines).toFixed(2) });
+        return rows;
+      },
+      tipNote: baseline ? "Mathlib baseline: " + TC.fmt(baseline.lines) + " LOC at pinned " + baseline.ref.slice(0, 12) + " (fixed for all dates)." : "Mathlib baseline unavailable.",
+    });
   }).catch(function () {
     // Without the git-derived series, fall back to the chart scripts/build_static.sh renders.
     TC.$("#loc").replaceChildren(TC.el("figure", { class: "img" }, [TC.el("img", { src: TC.LIVE + "loc-tauceti.svg", alt: "Tau Ceti: lines of Lean by date" })]));

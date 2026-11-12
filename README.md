@@ -1,7 +1,7 @@
 # Tau Ceti website
 
 A static site for the [Tau Ceti](https://github.com/TauCetiProject/TauCeti) project, served on
-GitHub Pages. Eight pages: home (what Tau Ceti is, how to use it from Lean), what's inside,
+GitHub Pages at [taucetiproject.org](https://taucetiproject.org/). Pages include home (what Tau Ceti is, how to use it from Lean), what's inside,
 contribute, growth, roadmaps (structure and progress), people, acknowledgments, and internal health.
 Two apps are served beside them:
 
@@ -37,6 +37,8 @@ the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).
   about 4,600 GraphQL requests.
 - `scripts/build_data.py` generates the rest, into `data/`:
   - `library-loc.json`: lines under `TauCeti/` by day, from TauCeti's git history.
+  - `mathlib-baseline.json`: source line count at TauCeti's exact Mathlib pin, used as a fixed
+    comparison in the growth chart's date, daily-change and trailing-seven-day tooltips.
   - `loc-by-topic.json`: net lines per roadmap and per arXiv category, from merged pull requests
     and their `roadmap/<Area>` labels (bors merges included).
   - `examples.json`: the showcase theorems from TauCeti's `web/examples/Examples.lean`.
@@ -45,11 +47,25 @@ the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).
 - The API documentation stays with TauCeti, whose `api-docs.yml` builds it alongside the library; the
   site links to it at `taucetiproject.github.io/TauCeti/docs/`. `404.html` sends the earlier site's
   addresses there (`/docs/…`) or to their pages here (`/about/`, `/team/`, `/statistics/`,
-  `/progress/`, `/ci/`).
+  `/progress/`). `/ci/` serves the live queue and runner dashboard, preserving its tab and PR links.
+  It reads prepared public CI snapshots every five seconds while visible and retains the last
+  successful observations when a source fails; historical chart publication and complete queue
+  snapshot ages are reported separately. The migrated scripts and browser fixture come from
+  [TauCeti #29477](https://github.com/TauCetiProject/TauCeti/pull/29477) and
+  [#30562](https://github.com/TauCetiProject/TauCeti/pull/30562).
 - `.github/workflows/pages.yml` regenerates `data/` and deploys every three hours. Both walks are
   cached between runs, with `data/`.
+- `Publish with retained data` can publish page changes using the `github-pages` artifact from
+  an explicitly selected successful main-branch Pages run. It preserves the data timestamps,
+  generated charts and Atlas, refreshes the small CI snapshot and fixed Mathlib comparison,
+  and rebuilds the pages and Review shell. The selected artifact must still be available.
 
 Charts are plain SVG drawn by `static/js/common.js`; there are no dependencies.
+
+The migration's browser regressions run with `npm ci`, `npx playwright install --with-deps chromium`,
+`python3 -m unittest discover -s tests`, and `npm test`. They exercise the generated `/ci/` page,
+pagination, PR lookup, independent source failures, desktop/mobile layout, audit tables and
+the growth chart's keyboard and touch tooltips.
 
 ## Local preview
 

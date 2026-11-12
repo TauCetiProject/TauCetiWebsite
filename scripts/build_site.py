@@ -43,7 +43,7 @@ NAV = [
     ("Contribute", [("Quickstart", "contribute.html"), ("Run a worker", "contribute/worker.html"),
                     ("Run a fleet", "contribute/fleet.html"), ("Write a roadmap", "contribute/write-roadmap.html"),
                     ("Review roadmaps", "contribute/review-roadmaps.html"), ("Statement review", "contribute/statements.html")]),
-    ("Project", [("News", "blog/"), ("Growth", "growth.html"), ("People", "people.html"), ("Health", "health.html"),
+    ("Project", [("News", "blog/"), ("Growth", "growth.html"), ("People", "people.html"), ("Health", "health.html"), ("CI and runners", "ci/index.html"),
                  ("Acknowledgments", "acknowledgments.html")]),
     ("FAQ", "faq.html"),
 ]
@@ -236,6 +236,7 @@ def main() -> None:
                 .replace("{{title}}", html.escape(title if title == "Tau Ceti" else f"{title} — Tau Ceti"))
                 .replace("{{description}}", html.escape(meta.get("description", "")))
                 .replace("{{scripts}}", scripts)
+                .replace("{{styles}}", "\n".join(f'  <link rel="stylesheet" href="{root}static/{s}?v={version}">' for s in meta.get("styles", [])))
                 .replace("{{theme_init}}", THEME_INIT)
                 .replace("{{header}}", site_header("blog/" if file.startswith("blog/") else file, root))
                 .replace("{{data_links}}", data_links(meta.get("data", []), root))

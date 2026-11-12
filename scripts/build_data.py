@@ -61,8 +61,8 @@ def log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
 
-def fetch_json(url: str):
-    req = urllib.request.Request(url, headers={"User-Agent": "tauceti-website-build"})
+def fetch_json(url: str, headers: dict | None = None):
+    req = urllib.request.Request(url, headers={"User-Agent": "tauceti-website-build", **(headers or {})})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)
 
@@ -303,6 +303,28 @@ def library_loc(repo: Path) -> dict:
             "files_now": sum(1 for f in files if f.endswith(".lean"))}
 
 
+def mathlib_baseline(repo: Path, cache: Path) -> dict:
+    """Count the exact pinned source once per revision, without building Mathlib."""
+    manifest = json.loads((repo / "lake-manifest.json").read_text())
+    ref = next(p["rev"] for p in manifest["packages"] if p["name"] == "mathlib")
+    if not re.fullmatch(r"[0-9a-f]{40}", ref):
+        raise ValueError("Mathlib pin must be a full commit SHA")
+    source = cache / "mathlib.git"
+    if not source.exists():
+        source.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["git", "init", "--bare", "--quiet", str(source)], check=True)
+    git = ["git", "-C", str(source)]
+    if subprocess.run(git + ["cat-file", "-e", ref + "^{commit}"], capture_output=True).returncode:
+        subprocess.run(git + ["fetch", "--quiet", "--depth=1",
+                              "https://github.com/leanprover-community/mathlib4.git", ref], check=True)
+    counts = subprocess.run(git + ["grep", "-I", "-c", "^", ref, "--", ":(glob)Mathlib/**/*.lean", "Mathlib.lean"],
+                            capture_output=True, text=True, check=True).stdout
+    lines = sum(int(row.rsplit(":", 1)[1]) for row in counts.splitlines())
+    if lines <= 0:
+        raise ValueError("Mathlib comparison contains no lines")
+    return {"generated_at": now_iso(), "ref": ref, "lines": lines}
+
+
 DOCS = "https://taucetiproject.github.io/TauCeti/docs/"
 
 
@@ -425,7 +447,7 @@ def latest_release(repo: Path) -> dict:
 
 
 def ci_current() -> dict:
-    m = fetch_json(CI_MANIFEST)
+    m = fetch_json(CI_MANIFEST, {"Origin": "https://taucetiproject.org"})
     cur = m.get("current") or {}
     return {"fetched_at": now_iso(), "generated_at": m.get("generated_at"),
             "mode": m.get("mode"), "running": cur.get("running", {}),
@@ -464,6 +486,7 @@ def main() -> int:
 
     if args.tauceti_repo:
         step("library-loc", lambda: write(args.out, "library-loc.json", library_loc(args.tauceti_repo)))
+        step("mathlib-baseline", lambda: write(args.out, "mathlib-baseline.json", mathlib_baseline(args.tauceti_repo, args.cache)))
         step("release", lambda: write(args.out, "release.json", latest_release(args.tauceti_repo)))
     step("roadmap-examples", lambda: write(args.out, "roadmap-examples.json", roadmap_examples()))
     step("ci-current", lambda: write(args.out, "ci-current.json", ci_current()))

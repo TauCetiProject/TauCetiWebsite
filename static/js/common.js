@@ -314,6 +314,10 @@
         if (opts.stacked && opts.total !== false) {
           tip.append(TC.el("div", { class: "r" }, [TC.el("span"), TC.el("b", { text: tipFormat(tops[series.length - 1][i]) }), TC.el("em", { text: "total" })]));
         }
+        if (opts.tipRows) opts.tipRows(dates[i]).forEach(function (row) {
+          tip.append(TC.el("div", { class: "r" }, [TC.el("span"), TC.el("b", { text: row.value }), TC.el("em", { text: row.label })]));
+        });
+        if (opts.tipNote) tip.append(TC.el("div", { class: "small muted", text: opts.tipNote }));
         var scale = host.clientWidth / W;
         var left = cx * scale + 14, tw = tip.offsetWidth || 180;
         if (left + tw > host.clientWidth) left = cx * scale - tw - 14;

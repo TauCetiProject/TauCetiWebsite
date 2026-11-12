@@ -21,7 +21,7 @@
       if (/\.github\.io$/.test(location.hostname)) base = path.split("/").slice(0, 2).join("/") + "/";
       var rest = path.slice(base.length);
       var moved = { "about": "faq.html", "team": "people.html", "statistics": "growth.html",
-                    "progress": "structure.html", "ci": "health.html" };
+                    "progress": "structure.html" };
       var target = null, first = rest.split("/")[0];
       if (first === "docs") target = "{{docs}}" + rest.slice(5) + location.search + location.hash;
       else if (moved[first] && rest.replace(/\/$/, "") === first) target = base + moved[first] + location.search + location.hash;

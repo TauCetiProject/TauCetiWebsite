@@ -206,7 +206,10 @@ def main() -> None:
     args.out.mkdir(parents=True)
     shutil.copytree(ROOT / "static", args.out / "static")
     if args.data.exists():
-        shutil.copytree(args.data, args.out / "data", ignore=shutil.ignore_patterns("cache", "static"))
+        shutil.copytree(args.data, args.out / "data", ignore=shutil.ignore_patterns("cache", "static", "docs"))
+    # scripts/mirror_docs.py's copies, at the address tools read them from; 404.html redirects the rest of /docs/.
+    if (args.data / "docs").exists():
+        shutil.copytree(args.data / "docs", args.out / "docs", ignore=shutil.ignore_patterns("*.new"))
     if (args.data / "static").exists():
         shutil.copytree(args.data / "static", args.out / "static", dirs_exist_ok=True)
     (args.out / ".nojekyll").write_text("")

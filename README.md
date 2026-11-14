@@ -47,7 +47,9 @@ the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).
 - The API documentation stays with TauCeti, whose `api-docs.yml` builds it alongside the library; the
   site links to it at `taucetiproject.github.io/TauCeti/docs/`. `404.html` sends the earlier site's
   addresses there (`/docs/…`) or to their pages here (`/about/`, `/team/`, `/statistics/`,
-  `/progress/`). `/ci/` serves the live queue and runner dashboard, preserving its tab and PR links.
+  `/progress/`). A script cannot follow that redirect, so `scripts/mirror_docs.py` copies the two
+  files tools read, `docs/SOURCE_SHA` and `docs/facts.json.gz`, on each build, as a pair describing
+  one commit; they are up to one build older than TauCeti's. `/ci/` serves the live queue and runner dashboard, preserving its tab and PR links.
   It reads prepared public CI snapshots every five seconds while visible and retains the last
   successful observations when a source fails; historical chart publication and complete queue
   snapshot ages are reported separately. The migrated scripts and browser fixture come from

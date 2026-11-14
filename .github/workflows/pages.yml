@@ -82,6 +82,12 @@ jobs:
           python3 scripts/library_counts.py --tauceti-repo "$RUNNER_TEMP/TauCeti" \
             || echo "::warning::declaration counts failed; the previous file is kept"
 
+      # Tools read these two at /docs/, where 404.html can only redirect a browser.
+      - name: Copy the documentation's commit marker and facts
+        run: |
+          python3 scripts/mirror_docs.py --out data/docs \
+            || echo "::warning::the documentation files were not copied; the previous pair is kept"
+
       - name: Save the data for the next run
         if: always()
         uses: actions/cache/save@v4

@@ -73,12 +73,16 @@ document.addEventListener("DOMContentLoaded", function () {
   }).catch(function (e) { TC.fail("#authors", e); });
 
   TC.live("progress.json").then(function (p) {
-    // Drop the week still in progress: a partial count reads as a collapse.
-    var cutoff = new Date(p.cutoff).getTime(), weeks = p.weeks.slice(), counts = p.global.weekly.slice();
-    while (weeks.length && new Date(weeks[weeks.length - 1] + "T00:00:00Z").getTime() + 7 * 864e5 > cutoff) { weeks.pop(); counts.pop(); }
+    var cutoff = new Date(p.cutoff).getTime(), weeks = p.weeks, counts = p.global.weekly;
+    function partial(week) { return new Date(week + "T00:00:00Z").getTime() + 7 * 864e5 > cutoff; }
+    var latest = weeks[weeks.length - 1];
+    TC.$("#weekly-sub").textContent = "Weeks start Monday, over the last four months. " +
+      (latest && partial(latest) ? "The week starting " + TC.dayYear(latest) + " is partial. " : "") +
+      "Includes Bors and AI queue merges.";
     TC.timeChart("#weekly", {
       dates: weeks, label: "Merged pull requests per week", updated: p.exported_at,
       series: [{ name: "Merged in the week starting", values: counts, color: S[0] }],
+      tipRows: function (week) { return [{ label: "week", value: partial(week) ? "Partial" : "Complete" }]; },
     });
   }).catch(function (e) { TC.fail("#weekly", e); });
 });

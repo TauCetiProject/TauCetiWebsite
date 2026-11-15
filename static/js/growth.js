@@ -69,20 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
     TC.set("merges7", TC.fmt(last.merges));
     TC.set("authors7", TC.fmt(last.active_authors));
     TC.set("latency", TC.hours(last.median_merge_hours));
+    TC.timeChart("#merges", { dates: r.map(function (x) { return x.date; }), updated: s.snapshot, label: "PRs merged in trailing 7 days", series: [{ name: "PRs merged in trailing 7 days", values: r.map(function (x) { return x.merges; }), color: S[0] }] });
     TC.timeChart("#authors", { dates: r.map(function (x) { return x.date; }), updated: s.snapshot, label: "Active authors", series: [{ name: "Active authors", values: r.map(function (x) { return x.active_authors; }), color: S[4] }] });
-  }).catch(function (e) { TC.fail("#authors", e); });
-
-  TC.live("progress.json").then(function (p) {
-    var cutoff = new Date(p.cutoff).getTime(), weeks = p.weeks, counts = p.global.weekly;
-    function partial(week) { return new Date(week + "T00:00:00Z").getTime() + 7 * 864e5 > cutoff; }
-    var latest = weeks[weeks.length - 1];
-    TC.$("#weekly-sub").textContent = "Weeks start Monday, over the last four months. " +
-      (latest && partial(latest) ? "The week starting " + TC.dayYear(latest) + " is partial. " : "") +
-      "Includes Bors and AI queue merges.";
-    TC.timeChart("#weekly", {
-      dates: weeks, label: "Merged pull requests per week", updated: p.exported_at,
-      series: [{ name: "Merged in the week starting", values: counts, color: S[0] }],
-      tipRows: function (week) { return [{ label: "week", value: partial(week) ? "Partial" : "Complete" }]; },
-    });
-  }).catch(function (e) { TC.fail("#weekly", e); });
+  }).catch(function (e) { TC.fail("#merges", e); TC.fail("#authors", e); });
 });

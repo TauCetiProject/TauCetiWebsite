@@ -1,4 +1,4 @@
-<!-- {"title": "Growth", "description": "How fast Tau Ceti is growing: lines of Lean over time, by area, merges per week, and roadmap layers completed.", "scripts": ["counts.js", "growth.js"], "data": ["data/library-counts.json", "data/library-loc.json", "data/loc-by-topic.json", "live:roadmap-completion.json", "live:pr-stats.json", "live:progress.json"]} -->
+<!-- {"title": "Growth", "description": "How fast Tau Ceti is growing: lines of Lean over time, by area, trailing seven-day merges, and roadmap layers completed.", "scripts": ["counts.js", "growth.js"], "data": ["data/library-counts.json", "data/library-loc.json", "data/loc-by-topic.json", "live:roadmap-completion.json", "live:pr-stats.json"]} -->
 <p class="eyebrow">Growth</p>
 <h1>How fast is it growing?</h1>
 
@@ -32,9 +32,9 @@
 
 <div class="grid-2">
   <div class="panel">
-    <h3>Pull requests merged per week</h3>
-    <p class="sub" id="weekly-sub">Weeks start Monday, over the last four months; the current week is partial. Includes Bors and AI queue merges.</p>
-    <div id="weekly"><p class="muted">Loading…</p></div>
+    <h3>PRs merged in trailing 7 days</h3>
+    <p class="sub">For each date, PRs merged in the seven days ending on that date. Includes Bors and AI queue merges.</p>
+    <div id="merges"><p class="muted">Loading…</p></div>
   </div>
   <div class="panel">
     <h3>Active pull-request authors</h3>

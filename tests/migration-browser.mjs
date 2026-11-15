@@ -15,12 +15,15 @@ const dates = Array.from({length: 60}, (_, i) => new Date(Date.UTC(2026, 9, i + 
 fs.writeFileSync(path.join(data, 'library-loc.json'), JSON.stringify({dates, lines: dates.map((_, i) => 5000000 + i * 1000), generated_at: '2026-11-30T00:00:00Z'}));
 fs.writeFileSync(path.join(data, 'mathlib-baseline.json'), JSON.stringify({ref: 'a'.repeat(40), lines: 1000000}));
 fs.mkdirSync(path.join(data, 'static'));
-const progress = {
-  cutoff: '2026-11-15T00:34:40Z', exported_at: '2026-11-15T00:34:40Z',
-  weeks: ['2026-10-26', '2026-11-02', '2026-11-09'],
-  global: {weekly: [4164, 5378, 7412]},
+const prStats = {
+  snapshot: '2026-11-17T00:34:40Z',
+  rolling_seven_day: [
+    {date: '2026-11-14', merges: 9000, active_authors: 40, median_merge_hours: 24},
+    {date: '2026-11-15', merges: 8485, active_authors: 40, median_merge_hours: 26},
+    {date: '2026-11-16', merges: 8600, active_authors: 41, median_merge_hours: 25},
+  ],
 };
-fs.writeFileSync(path.join(data, 'static/progress.json'), JSON.stringify(progress));
+fs.writeFileSync(path.join(data, 'static/pr-stats.json'), JSON.stringify(prStats));
 const build = spawnSync('python3', ['scripts/build_site.py', '--out', output, '--data', data], {cwd: root, stdio: 'inherit'});
 assert.equal(build.status, 0);
 const server = createServer((request, response) => {
@@ -49,16 +52,17 @@ try {
   assert.match(await rows.nth(2).innerText(), /118\/372.*31.7%/);
 
   await page.goto(url + '/growth.html');
-  // A Sunday snapshot includes the current week's queue merges, explicitly marked partial.
-  const weeklyHit = page.locator('#weekly rect[tabindex="0"]');
-  const weeklyTooltip = page.locator('#weekly .tooltip');
-  await weeklyHit.focus();
-  assert.match(await weeklyTooltip.innerText(), /9 Nov 2026.*7,412.*Partial/s);
-  assert.match(await page.locator('#weekly-sub').innerText(), /week starting 9 Nov 2026 is partial.*Bors and AI queue/s);
-  await weeklyHit.press('ArrowLeft');
-  assert.match(await weeklyTooltip.innerText(), /2 Nov 2026.*5,378.*Complete/s);
-  await weeklyHit.press('ArrowRight');
-  assert.match(await weeklyTooltip.innerText(), /7,412.*Partial/s);
+  // Daily rolling counts match the headline, including across Sunday/Monday, without progress.json.
+  const mergesHit = page.locator('#merges rect[tabindex="0"]');
+  const mergesTooltip = page.locator('#merges .tooltip');
+  await mergesHit.focus();
+  assert.match(await mergesTooltip.innerText(), /16 Nov 2026.*8,600.*PRs merged in trailing 7 days/s);
+  assert.equal(await page.locator('[data-stat="merges7"] .v').innerText(), '8,600');
+  await mergesHit.press('ArrowLeft');
+  assert.match(await mergesTooltip.innerText(), /15 Nov 2026.*8,485/s);
+  await mergesHit.press('ArrowLeft');
+  assert.match(await mergesTooltip.innerText(), /14 Nov 2026.*9,000/s);
+  assert.doesNotMatch(await mergesTooltip.innerText(), /Partial|Complete/);
   const hit = page.locator('#loc rect[tabindex="0"]');
   await hit.focus();
   const tooltip = page.locator('#loc .tooltip');
@@ -84,13 +88,6 @@ try {
   assert.match(await tooltip.innerText(), /Mathlib baseline unavailable/);
   assert.match(await tooltip.innerText(), /change since yesterday/);
 
-  // At the next Monday boundary that same bucket is complete, without losing its count.
-  progress.cutoff = '2026-11-16T00:00:00Z';
-  fs.writeFileSync(path.join(output, 'static/progress.json'), JSON.stringify(progress));
-  await page.reload();
-  await weeklyHit.focus();
-  assert.match(await weeklyTooltip.innerText(), /9 Nov 2026.*7,412.*Complete/s);
-  assert.doesNotMatch(await page.locator('#weekly-sub').innerText(), /partial/);
   // Old entry points are real HTTP 200 pages, and preserve bookmarks when moving.
   for (const old of ['Statistics', 'statistics']) {
     assert.equal((await fetch(url + '/' + old + '/')).status, 200);
@@ -104,7 +101,7 @@ try {
   await page.waitForURL('https://taucetiproject.github.io/TauCeti/docs/?q=group#result');
 
   assert.deepEqual(errors, []);
-  console.log('browser: migrated audit rows, weekly merges including partial weeks, keyboard/touch tooltips, range selection and unavailable baseline passed');
+  console.log('browser: migrated audit rows, trailing seven-day merges, keyboard/touch tooltips, range selection and unavailable baseline passed');
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));

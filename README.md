@@ -45,7 +45,10 @@ the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).
   - `ci-current.json`: running and queued CI jobs, and the CI service's current chart URLs. The CI
     manifest's CORS policy admits only taucetiproject.org, so it is copied at build time.
 - The API documentation stays with TauCeti, whose `api-docs.yml` builds it alongside the library; the
-  site links to it at `taucetiproject.github.io/TauCeti/docs/`. `404.html` sends the earlier site's
+  site links to it at `taucetiproject.github.io/TauCeti/docs/`. Each publication mirrors its
+  `facts.json.gz` and matching `SOURCE_SHA` under `/docs/` for existing progress reporters.
+  `/docs/`, `/Statistics/` and `/statistics/` have real entry pages, preserving browser query
+  strings and fragments. `404.html` sends the earlier site's
   addresses there (`/docs/…`) or to their pages here (`/about/`, `/team/`, `/statistics/`,
   `/progress/`). `/ci/` serves the live queue and runner dashboard, preserving its tab and PR links.
   It reads prepared public CI snapshots every five seconds while visible and retains the last

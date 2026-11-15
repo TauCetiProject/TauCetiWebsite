@@ -188,6 +188,24 @@ def release_info(path: Path) -> dict:
         return {"tag": "vX.Y.Z", "toolchain": "leanprover/lean4:vX.Y.Z", "date": "an unknown date"}
 
 
+def compatibility_pages(out: Path, data: Path) -> None:
+    """Serve old entry points as real pages, including machine-readable docs facts."""
+    for name, target in [('Statistics', '../growth.html'), ('statistics', '../growth.html'), ('docs', DOCS)]:
+        directory = out / name
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / 'index.html').write_text(
+            '<!doctype html><html lang="en"><meta charset="utf-8">'
+            '<title>Page moved — Tau Ceti</title>'
+            f'<link rel="canonical" href="{html.escape(target, quote=True)}">'
+            f'<meta http-equiv="refresh" content="0;url={html.escape(target, quote=True)}">'
+            f'<script>location.replace({json.dumps(target)} + location.search + location.hash)</script>'
+            f'<p>This page has moved. <a href="{html.escape(target, quote=True)}">Continue to the page</a>.</p></html>')
+    docs = data / 'docs'
+    if docs.exists():
+        for name in ['facts.json.gz', 'SOURCE_SHA']:
+            shutil.copyfile(docs / name, out / 'docs' / name)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", type=Path, default=ROOT / "_site")
@@ -206,7 +224,7 @@ def main() -> None:
     args.out.mkdir(parents=True)
     shutil.copytree(ROOT / "static", args.out / "static")
     if args.data.exists():
-        shutil.copytree(args.data, args.out / "data", ignore=shutil.ignore_patterns("cache", "static"))
+        shutil.copytree(args.data, args.out / "data", ignore=shutil.ignore_patterns("cache", "static", "docs"))
     if (args.data / "static").exists():
         shutil.copytree(args.data / "static", args.out / "static", dirs_exist_ok=True)
     (args.out / ".nojekyll").write_text("")
@@ -255,6 +273,7 @@ def main() -> None:
                 .replace("{{review_data}}", html.escape(args.review_data.rstrip("/") + "/")))
         (args.out / file).parent.mkdir(parents=True, exist_ok=True)
         (args.out / file).write_text(page)
+    compatibility_pages(args.out, args.data)
     print(f"built {len(pages)} pages into {args.out}")
 
 

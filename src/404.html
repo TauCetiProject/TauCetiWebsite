@@ -24,7 +24,7 @@
                     "progress": "structure.html" };
       var target = null, first = rest.split("/")[0];
       if (first === "docs") target = "{{docs}}" + rest.slice(5) + location.search + location.hash;
-      else if (moved[first] && rest.replace(/\/$/, "") === first) target = base + moved[first] + location.search + location.hash;
+      else if (moved[first.toLowerCase()] && rest.replace(/\/$/, "") === first) target = base + moved[first.toLowerCase()] + location.search + location.hash;
       if (target) location.replace(target);
       window.TC_BASE = base;
     })();

@@ -91,6 +91,18 @@ try {
   await weeklyHit.focus();
   assert.match(await weeklyTooltip.innerText(), /9 Nov 2026.*7,412.*Complete/s);
   assert.doesNotMatch(await page.locator('#weekly-sub').innerText(), /partial/);
+  // Old entry points are real HTTP 200 pages, and preserve bookmarks when moving.
+  for (const old of ['Statistics', 'statistics']) {
+    assert.equal((await fetch(url + '/' + old + '/')).status, 200);
+    await page.goto(url + '/' + old + '/?range=30#loc');
+    await page.waitForURL(url + '/growth.html?range=30#loc');
+  }
+  assert.equal((await fetch(url + '/docs/')).status, 200);
+  await page.route('https://taucetiproject.github.io/TauCeti/docs/**', route =>
+    route.fulfill({status: 200, contentType: 'text/html', body: '<h1>API docs</h1>'}));
+  await page.goto(url + '/docs/?q=group#result');
+  await page.waitForURL('https://taucetiproject.github.io/TauCeti/docs/?q=group#result');
+
   assert.deepEqual(errors, []);
   console.log('browser: migrated audit rows, weekly merges including partial weeks, keyboard/touch tooltips, range selection and unavailable baseline passed');
 } finally {

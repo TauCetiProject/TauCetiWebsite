@@ -58,10 +58,11 @@ the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).
   [#30562](https://github.com/TauCetiProject/TauCeti/pull/30562).
 - `.github/workflows/pages.yml` regenerates `data/` and deploys every three hours. Both walks are
   cached between runs, with `data/`.
-- `Publish with retained data` can publish page changes using the `github-pages` artifact from
+- `Publish with retained data` can publish page changes using the `site` and `atlas` artifacts from
   an explicitly selected successful main-branch Pages run. It preserves the data timestamps,
   generated charts and Atlas, refreshes the small CI snapshot and fixed Mathlib comparison,
-  and rebuilds the pages and Review shell. The selected artifact must still be available.
+  and rebuilds the pages and Review shell. Both selected artifacts must still be available;
+  they are retained for seven days, independently of the shorter-lived Pages deployment artifact.
 
 Charts are plain SVG drawn by `static/js/common.js`; there are no dependencies.
 

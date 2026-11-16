@@ -103,7 +103,7 @@ jobs:
           name: site
           path: _site
           include-hidden-files: true
-          retention-days: 2
+          retention-days: 7
 
   atlas:
     # After the site, so the Atlas shows the roadmap progress this run generated.
@@ -135,7 +135,7 @@ jobs:
           if-no-files-found: error
           name: atlas
           path: _atlas
-          retention-days: 2
+          retention-days: 7
 
   # The review app's tests, against the review data repository's forms and scripts. For now that is the
   # review's original repository, which vars.REVIEW_DATA_REPO names.

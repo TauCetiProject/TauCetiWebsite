@@ -12,10 +12,12 @@ Two apps are served beside them:
   own workflows sit inert under `atlas/.github/`.
 - `review/` is Tau Ceti Review's app (`web/`, its build, the sign-in worker and the browser check),
   imported with its history from
-  [cbirkbeck/tauceti-reviewed-by-test](https://github.com/cbirkbeck/tauceti-reviewed-by-test). Its data
+  the repository that is now
+  [TauCetiProject/TauCetiReviewSite](https://github.com/TauCetiProject/TauCetiReviewSite) (until 2026-11-20
+  cbirkbeck/tauceti-reviewed-by-test). Its data
   and pipeline (the evidence store, the issue forms and intake, following Tau Ceti, Voyager, the
-  datasets, the answerer, the fixer) are a separate repository, because they grow with Tau Ceti. For now
-  that is still cbirkbeck/tauceti-reviewed-by-test (`REVIEW_DATA_REPO`). It publishes the `data/` the app
+  datasets, the answerer, the fixer) are a separate repository, because they grow with Tau Ceti:
+  TauCetiProject/TauCetiReviewSite (`REVIEW_DATA_REPO`). It publishes the `data/` the app
   here reads on its own Pages (`REVIEW_DATA_URL`, by default that site's), and builds that site with its
   own copy of the app, so changes made to the app there are brought here by hand: each such commit names
   its original in an `Imported-from:` line. The review's build and tests find the data repository through

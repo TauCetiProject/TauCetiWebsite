@@ -154,7 +154,7 @@ jobs:
           ref: ${{ github.ref }}
       - uses: actions/checkout@v4
         with:
-          repository: ${{ vars.REVIEW_DATA_REPO || 'cbirkbeck/tauceti-reviewed-by-test' }}
+          repository: ${{ vars.REVIEW_DATA_REPO || 'TauCetiProject/TauCetiReviewSite' }}
           path: review-data
       - uses: actions/setup-python@v5
         with:

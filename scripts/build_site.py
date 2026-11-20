@@ -60,9 +60,9 @@ CONTRIBUTE = [
 # A page reached through another one in the bar is shown as that one.
 SECTION = {"roadmap.html": "structure.html"}
 
-# Tau Ceti Review's data is built and published by the review data repository. Until that repository's
-# Pages are up, the review's existing site serves the same data/.
-REVIEW_DATA = "https://cbirkbeck.github.io/tauceti-reviewed-by-test/data/"
+# Tau Ceti Review's data is built and published by the review data repository, TauCetiProject/TauCetiReviewSite
+# (until 2026-11-20 cbirkbeck/tauceti-reviewed-by-test, whose Pages address no longer exists), on its own Pages.
+REVIEW_DATA = "https://taucetiproject.github.io/TauCetiReviewSite/data/"
 
 HEADER = re.compile(r"\A\s*<!--\s*(\{.*?\})\s*-->\s*", re.S)
 

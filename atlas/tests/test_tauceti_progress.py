@@ -241,6 +241,27 @@ Change of family.
         # They count, unassessed, so the share done dips when such a roadmap is accepted.
         self.assertEqual(info["counts"], {"done": 0, "partial": 0, "untouched": 0, "unassessed": 2, "total": 2})
 
+    def test_a_family_index_without_layers_joins_as_a_collection_of_its_roadmaps(self):
+        # Representation theory is in the snapshot with no layers and its sub-roadmaps under it. A family Tau Ceti accepts
+        # since is read the same way: its README has no layers, and the roadmaps below it name it as their parent.
+        from tauceti_progress import add_new_roadmaps
+        data = self.atlas()
+        child = dict(self.row("Etale/Curves", ["Layer 0: sheaves"], ["untouched"]), parent_id="TauCetiRoadmap/Etale")
+        board = self.board(self.row("Etale", [], []), child, self.row("Overview", [], []))
+        index = "# Etale cohomology\n\nA family of roadmaps.\n\n## The roadmaps\n\n## How they depend on one another\n"
+        added = add_new_roadmaps(data, board, {"TauCetiRoadmap/Etale": index, "TauCetiRoadmap/Etale/Curves": "# Etale cohomology of curves\n\n## Layer 0: sheaves\n\nSheaves.\n",
+                                               "TauCetiRoadmap/Overview": index}, {})
+        self.assertEqual(added, ["tauceti:TauCetiRoadmap/Etale/Curves", "tauceti:TauCetiRoadmap/Etale"])
+        family = data["roadmaps"][-1]
+        self.assertEqual((family["stages"], family["group"], family["origin"]), ([], "etale", "tauceti"))
+        self.assertNotIn("layersFrom", family)
+        self.assertEqual(data["roadmaps"][-2]["parentRoadmapId"], family["id"])
+        apply(data, board)
+        info = data["taucetiProgress"]
+        # A README without layers and nothing below it stays off the map, as before; a collection counts no layers.
+        self.assertEqual([row["id"] for row in info["unplaced"]], ["TauCetiRoadmap/Overview"])
+        self.assertEqual((info["readmeLayers"], info["counts"]["total"]), ([], 1))
+
     def test_the_boards_own_layers_come_before_the_readmes(self):
         from tauceti_progress import add_new_roadmaps
         data = self.atlas()

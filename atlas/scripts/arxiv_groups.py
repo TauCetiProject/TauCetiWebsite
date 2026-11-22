@@ -104,15 +104,20 @@ def categories_of(atlas: dict, declared: dict, areas: dict | None = None) -> dic
     """Each roadmap's (category, basis): "declared" in its metadata.toml; "parent" from the nearest folder above it
     that declares one (declared may name folders that are not on the map); "links" from a clear lead among the
     roadmaps it is linked to; "area" from the subject area its title or README named (areas maps an area to
-    its category); or "none"."""
-    ids = [roadmap["id"] for roadmap in atlas["roadmaps"]]
+    its category); or "none".
+
+    A family's index proposed in a pull request (a collection: no layers of its own) comes last, in its own category or
+    else that of most of its sub-roadmaps ("children"). It passes its category to none of them and counts in no other
+    roadmap's place, so that the sub-roadmaps of a family stay in their own areas."""
+    families = {roadmap["id"] for roadmap in atlas["roadmaps"] if roadmap.get("origin") == "proposed" and roadmap.get("stages") == []}
+    ids = [roadmap["id"] for roadmap in atlas["roadmaps"] if roadmap["id"] not in families]
     found = {rid: (code, "declared") for rid in ids if (code := category(declared.get(rid)))}
     for rid in ids:
         if rid in found:
             continue
         parts = rid.split("/")
         for end in range(len(parts) - 1, 0, -1):
-            above = category(declared.get("/".join(parts[:end])))
+            above = None if "/".join(parts[:end]) in families else category(declared.get("/".join(parts[:end])))
             if above:
                 found[rid] = (above, "parent")
                 break
@@ -137,12 +142,19 @@ def categories_of(atlas: dict, declared: dict, areas: dict | None = None) -> dic
     by_links({"declared", "parent"})
     for roadmap in atlas["roadmaps"]:
         code = (areas or {}).get(roadmap.get("group"))
-        if roadmap["id"] not in found and code in CATEGORIES:
+        if roadmap["id"] not in found and roadmap["id"] not in families and code in CATEGORIES:
             found[roadmap["id"]] = (code, "area")
     # Roadmaps placed so far place their neighbours in turn: sub-roadmaps of an undeclared collection settle together.
     while by_links({"declared", "parent", "links", "area"}):
         pass
-    return {rid: found.get(rid, (UNCLASSIFIED, "none")) for rid in ids}
+    below = defaultdict(list)
+    for roadmap in atlas["roadmaps"]:
+        below[roadmap.get("parentRoadmapId")].append(roadmap["id"])
+    # The deepest first, so that a family inside a family is placed before the one above it.
+    for rid in sorted(families, key=lambda rid: -rid.count("/")):
+        ranked = Counter(found[other][0] for other in below[rid] if found.get(other, (UNCLASSIFIED,))[0] != UNCLASSIFIED).most_common(1)
+        found[rid] = (code, "declared") if (code := category(declared.get(rid))) else (ranked[0][0], "children") if ranked else (UNCLASSIFIED, "none")
+    return {roadmap["id"]: found.get(roadmap["id"], (UNCLASSIFIED, "none")) for roadmap in atlas["roadmaps"]}
 
 
 def distance_of(atlas: dict, roadmap_id: str) -> float:
@@ -244,6 +256,7 @@ def group_by_arxiv(atlas: dict, declared: dict, areas: dict | None = None, subar
                      "parent": f"In {name} ({code}), the arXiv category of the folder above it: it declares none of its own.",
                      "links": f"In {name} ({code}), the arXiv category of most of the roadmaps it is linked to: it declares none of its own.",
                      "area": f"In {name} ({code}), the arXiv category of the subject its title or README names: it declares none of its own.",
+                     "children": f"In {name} ({code}), the arXiv category of most of its sub-roadmaps: it declares none of its own.",
                      "none": "It declares no arXiv category in a metadata.toml, and neither the folder above it, the roadmaps it is "
                              "linked to nor its title settle one."}[basis]
         record = atlas.setdefault("roadmapClassification", {}).setdefault("roadmaps", {}).setdefault(roadmap["id"], {})

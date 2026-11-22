@@ -682,6 +682,70 @@ def check_proposals(page):
  page.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null,origin:'proposed'})");page.wait_for_timeout(700)
  record('The pull requests collection shows only the proposed roadmaps',page.evaluate("TauExplorer.graph.debugState().counts.constellations===TauExplorer.data.proposals.roadmaps.length"))
  page.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null,origin:'all'})");page.wait_for_timeout(500)
+FAMILY_JS = """id => { const d=TauExplorer.data,u=TauExplorer.getUniverse(),below=new Map();
+  for (const r of d.roadmaps) if (r.parentRoadmapId) (below.get(r.parentRoadmapId)||below.set(r.parentRoadmapId,[]).get(r.parentRoadmapId)).push(r.id);
+  const members=[],visit=x=>(below.get(x)||[]).forEach(c=>{if(!members.includes(c)){members.push(c);visit(c);}});visit(id);
+  const inside=new Set([id,...members]),drawn=new Set(u.constellations.map(c=>c.id));
+  // What the map draws when the family is pointed at: its own links, and those into its sub-roadmaps from outside; none within.
+  const links=d.edges.filter(e=>drawn.has(e.source)&&drawn.has(e.target)&&(e.source===id||e.target===id||inside.has(e.target))&&!(inside.has(e.source)&&inside.has(e.target)));
+  const uses=[...new Set(d.edges.filter(e=>inside.has(e.target)&&!inside.has(e.source)).map(e=>e.source))].sort();
+  return {members:members.filter(x=>drawn.has(x)).sort(), links:links.length, uses, drawnUses:uses.filter(x=>drawn.has(x)),
+          pending:uses.filter(x=>(d.roadmaps.find(r=>r.id===x)||{}).origin==='proposed').length}; }"""
+MARKS_JS = """() => { const all=s=>[...document.querySelectorAll(s)], ring=g=>g.querySelector('.tau-select-ring');
+  return {links:all('.tau-link').length, linksFor:[...new Set(all('.tau-link-hit').map(h=>h.dataset.for))],
+          members:all('.tau-constellation.is-family-member').map(g=>g.dataset.nodeId).sort(), uses:all('.tau-constellation.is-family-use').map(g=>g.dataset.nodeId).sort(),
+          shown:all('.tau-constellation').map(g=>g.dataset.nodeId), ringed:all('.tau-constellation.is-family-member, .tau-constellation.is-family-use').every(g=>Number(ring(g).getAttribute('opacity'))>0),
+          dashed:all('.tau-constellation.is-family-use').every(g=>!!ring(g).getAttribute('stroke-dasharray'))}; }"""
+def family_marked(page,family,want):
+ # The links the family is pointed at with, its sub-roadmaps ringed and the roadmaps it rests on ringed dashed: every one
+ # the map has drawn, at this camera, and no other.
+ got=page.evaluate(MARKS_JS);shown=set(got['shown'])
+ return (got['links']==want['links']>0 and got['linksFor']==[family] and got['ringed'] and got['dashed']
+         and got['members']==sorted(x for x in want['members'] if x in shown) and len(got['members'])>0
+         and got['uses']==sorted(x for x in want['drawnUses'] if x in shown) and len(got['uses'])>0)
+def check_families(page,family):
+ """A family (a roadmap with sub-roadmaps; proposed in a pull request, its index has no layers and is a collection):
+ pointing at it rings its sub-roadmaps and draws the links into them from the roadmaps outside it that they rest on;
+ leaving it restores the map; selecting it gives the same picture, and its panel lists what it rests on."""
+ page.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null,origin:'all',activity:'all'})");page.wait_for_timeout(600)
+ # Every sub-roadmap's parent is on the map: a family whose README has no layers joins it as a collection.
+ record('Every sub-roadmap\'s family is on the map, a family without layers as a collection',page.evaluate("""() => { const d=TauExplorer.data,ids=new Set(d.roadmaps.map(r=>r.id)),u=TauExplorer.getUniverse();
+  const collections=d.roadmaps.filter(r=>!r.stages.length); return d.roadmaps.every(r=>!r.parentRoadmapId||ids.has(r.parentRoadmapId))
+   && collections.length>0 && collections.every(r=>u.byId.has(r.id)&&d.roadmaps.some(x=>x.parentRoadmapId===r.id))
+   && (!d.proposals||d.proposals.unplaced.every(id=>!d.roadmaps.some(x=>x.parentRoadmapId===id))); }"""))
+ want=page.evaluate(FAMILY_JS,family)
+ center_on(page,family)
+ box=page.locator('[data-node-id=%s] .tau-hit'%json.dumps(family)).bounding_box()
+ page.mouse.move(box['x']+box['width']/2+3,box['y']+box['height']/2);page.mouse.move(box['x']+box['width']/2,box['y']+box['height']/2);page.wait_for_timeout(400)
+ record('Pointing at a family rings its sub-roadmaps and draws the links from the roadmaps outside it that they rest on',
+        page.evaluate('TauExplorer.graph.hoveredId')==family and family_marked(page,family,want))
+ page.screenshot(path=str(ROOT/'preview-family-hover.png'),animations='disabled')
+ page.mouse.move(5,5);page.wait_for_timeout(300)
+ record('Leaving the family restores the map',page.locator('.tau-link').count()==0 and page.locator('.is-family-member, .is-family-use').count()==0)
+ page.mouse.click(box['x']+box['width']/2,box['y']+box['height']/2)
+ page.wait_for_function("id => TauExplorer.getState().selected===id",arg=family);page.wait_for_timeout(900);page.mouse.move(5,5);page.wait_for_timeout(300)
+ record('Selecting a family keeps the same picture',page.evaluate("id => TauExplorer.getState().view===(TauExplorer.data.roadmaps.find(r=>r.id===id).stages.length?'roadmap':'collection')",family)
+        and family_marked(page,family,want))
+ panel=page.evaluate("""() => { const w=document.querySelector('#inspector-content .family-uses'); if(!w)return null; const groups=new Map(TauExplorer.data.roadmaps.map(r=>[r.id,r.group]));
+  return {note:w.querySelector('.detail-note').textContent, items:[...w.querySelectorAll('.item-link')].map(b=>b.dataset.itemId).sort(),
+          grouped:[...w.querySelectorAll('.family-area')].every(d=>[...d.querySelectorAll('.item-link')].every(b=>groups.get(b.dataset.itemId)===d.dataset.group))}; }""")
+ counts=('%d on main and %d in open pull requests'%(len(want['uses'])-want['pending'],want['pending'])) if PROPOSALS else ''
+ record('A family\'s panel lists what it rests on outside it, by area, on main and in open pull requests',
+        panel is not None and panel['items']==want['uses'] and panel['grouped'] and ('rests directly on %d roadmap'%len(want['uses'])) in panel['note'] and counts in panel['note'])
+ page.locator('#inspector-content .family-area').first.locator('summary').click()
+ entry=page.locator('#inspector-content .family-area').first.locator('.item-link').first;other=entry.get_attribute('data-item-id');entry.click()
+ page.wait_for_function("id => TauExplorer.getState().selected===id",arg=other);page.wait_for_timeout(400)
+ record('A roadmap the family rests on opens from its panel',page.evaluate("TauExplorer.getState().selected")==other)
+ page.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null})");page.wait_for_timeout(500)
+def check_family_tap(mp,family):
+ # Touch has no hover: a tap selects the family, with the same picture.
+ want=mp.evaluate(FAMILY_JS,family)
+ mp.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null})");mp.wait_for_timeout(500);center_on(mp,family)
+ tap_until(mp,'[data-node-id=%s] .tau-hit'%json.dumps(family),"TauExplorer.getState().selected==="+json.dumps(family))
+ mp.wait_for_timeout(900)
+ record('Phone tap on a family selects it with the same picture',family_marked(mp,family,want))
+ mp.screenshot(path=str(ROOT/'preview-phone-family.png'),animations='disabled')
+ mp.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null})");mp.wait_for_timeout(400)
 def check_performance(page):
  fit_all(page)
  t=time.time();page.evaluate("""() => new Promise(resolve => { const g=TauExplorer.graph,s=g.debugState().transform; let step=0; const tick=()=>{ step++; const k=s.k*Math.pow(1.25,step); g.svg.call(g.zoom.transform,d3.zoomIdentity.translate(g.width/2-(g.width/2-s.x)/s.k*k,g.height/2-(g.height/2-s.y)/s.k*k).scale(k)); if(step<16)requestAnimationFrame(tick); else requestAnimationFrame(resolve); }; requestAnimationFrame(tick); })""")
@@ -732,6 +796,9 @@ with sync_playwright() as p:
  REFINED=page.evaluate("TauExplorer.data.stages.some(s=>s.expansion&&!s.expansion.blueprint)")
  PROPOSALS=page.evaluate("!!TauExplorer.data.proposals")
  STAR=page.evaluate("id => { const lit=new Set(TauExplorer.landmarks.map(l=>l.stageId)),s=TauExplorer.getUniverse().stars.filter(x=>x.constellationId===id&&(x.planetIds.length||lit.has(x.id))).map(x=>x.id).sort(); return s[0]; }",ROADMAP)
+ # The family to point at: the one with the most sub-roadmaps, a collection (no layers of its own) before one with layers.
+ FAMILY=page.evaluate("""() => { const d=TauExplorer.data,n=new Map(); for(const r of d.roadmaps)if(r.parentRoadmapId)n.set(r.parentRoadmapId,(n.get(r.parentRoadmapId)||0)+1);
+  return d.roadmaps.filter(r=>n.has(r.id)).sort((a,b)=>(a.stages.length?1:0)-(b.stages.length?1:0)||n.get(b.id)-n.get(a.id)||(a.id<b.id?-1:1)).map(r=>r.id)[0]||null; }""")
  if overview_only:
   run_overview_checks(page,browser)
   record('No application exceptions',not errors)
@@ -754,6 +821,7 @@ with sync_playwright() as p:
  check_catalogue_selection(page,'Desktop')
  if REFINED:check_refinements(page)
  if PROPOSALS:check_proposals(page)
+ if FAMILY:check_families(page,FAMILY)
  page.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null})");page.wait_for_timeout(500)
  record('Mathematical planets exclude procedural labels',page.evaluate("TauExplorer.landmarks.every(x=>!/^(Dependency|Canonical owner|API to develop|the|Tests|Suggested home)$/i.test(x.title))"))
  record('All roadmap summaries use mathematical prose',page.evaluate("TauExplorer.data.roadmaps.every(r=>r.summary.split(/\\s+/).length>=40 && !/portfolio audit|component implements|silently attributed/.test(r.summary))"))
@@ -913,6 +981,7 @@ with sync_playwright() as p:
   box=mp.locator('#graph').bounding_box();before=mp.evaluate('TauExplorer.getState().view')
   touch_swipe(mp,touch,(box['x']+20,box['y']+25),(box['x']+65,box['y']+65))
   record('One-finger pan does not open anything',mp.evaluate('TauExplorer.getState().view')==before=='all' and mp.evaluate('TauExplorer.getState().selected===null'))
+  if FAMILY:check_family_tap(mp,FAMILY)
   fit_all(mp,touch=True);center_on(mp,ROADMAP)
   mp.locator('[data-node-id='+json.dumps(ROADMAP)+'] .tau-hit').tap()
   mp.wait_for_function("TauExplorer.getState().view==='roadmap' && TauExplorer.getState().id==="+json.dumps(ROADMAP)+"");mp.wait_for_timeout(600)

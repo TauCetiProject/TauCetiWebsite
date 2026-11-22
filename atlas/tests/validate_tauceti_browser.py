@@ -42,9 +42,11 @@ with sync_playwright() as p:
           return t.startsWith("From Tau Ceti's Progress page") && (u.length ? t.includes(`${u.length} newer roadmap`) : !/newer roadmap/.test(t))
             && (r.length ? t.includes(`of ${r.length} roadmap${r.length===1?'':'s'} it lists without layers`) : !/without layers/.test(t))
             && u.every(x=>e.title.includes(x.id.split('/').pop())) && r.every(id=>e.title.includes(id.split('/').pop())); }"""))
+        # A family's index without layers (Operator theory) joins as a collection: its layers are its sub-roadmaps'.
         record(scope + ' a roadmap Tau Ceti accepted since the snapshot is on the map, counted in the layers', page.evaluate("""() => {
           const d=TauExplorer.data, added=d.roadmaps.filter(r=>(d.roadmapClassification.roadmaps[r.id]||{}).basis==='provisional'), u=TauExplorer.getUniverse();
-          return added.every(r=>u.byId.has(r.id) && r.stages.every(s=>u.byId.has(s)) && TauExplorer.progress.roadmapLeaves(r.id).length===r.stages.length); }"""))
+          return added.every(r=>u.byId.has(r.id) && r.stages.every(s=>u.byId.has(s)) && (r.stages.length ? TauExplorer.progress.roadmapLeaves(r.id).length===r.stages.length
+            : d.roadmaps.some(x=>x.parentRoadmapId===r.id))); }"""))
         # The board lists no layers for a roadmap whose headings it cannot read (`## A1. ...`); the
         # build reads them from the README, and none of them has a state.
         record(scope + ' a roadmap the board lists without layers has its README\'s layers on the map, unassessed', page.evaluate("""() => {
@@ -69,6 +71,24 @@ with sync_playwright() as p:
             page.wait_for_timeout(700)
             record('A layer shows what its latest report says is still to do', page.evaluate("""id => [...document.querySelectorAll('#inspector-content .section-label')].some(h=>h.textContent==='Still to do')
               && document.getElementById('inspector-content').textContent.includes(TauExplorer.data.taucetiProgress.remaining[id].slice(0,40))""", layer))
+            # A family on main (a collection: Representation theory, Operator theory): selected, it rings its sub-roadmaps and
+            # draws the links into them from the roadmaps outside it that they rest on, and its panel lists those.
+            family = page.evaluate("""() => { const d=TauExplorer.data,n=new Map(); for(const r of d.roadmaps)if(r.parentRoadmapId)n.set(r.parentRoadmapId,(n.get(r.parentRoadmapId)||0)+1);
+              return d.roadmaps.filter(r=>!r.stages.length&&n.has(r.id)).sort((a,b)=>n.get(b.id)-n.get(a.id))[0].id; }""")
+            page.evaluate("id => TauExplorer.openItem(id)", family)
+            page.wait_for_timeout(1200)
+            page.mouse.move(5, 5)
+            page.wait_for_timeout(300)
+            record('A family on main, selected, shows what its sub-roadmaps rest on, and lists it', page.evaluate("""id => {
+              const d=TauExplorer.data,u=TauExplorer.getUniverse(),members=[],visit=x=>d.roadmaps.filter(r=>r.parentRoadmapId===x).forEach(r=>{members.push(r.id);visit(r.id);});visit(id);
+              const inside=new Set([id,...members]),drawn=new Set(u.constellations.map(c=>c.id));
+              const links=d.edges.filter(e=>drawn.has(e.source)&&drawn.has(e.target)&&(e.source===id||e.target===id||inside.has(e.target))&&!(inside.has(e.source)&&inside.has(e.target))).length;
+              const uses=[...new Set(d.edges.filter(e=>inside.has(e.target)&&!inside.has(e.source)).map(e=>e.source))].sort();
+              const shown=new Set([...document.querySelectorAll('.tau-constellation')].map(g=>g.dataset.nodeId));
+              const ringed=[...document.querySelectorAll('.tau-constellation.is-family-member')].map(g=>g.dataset.nodeId).sort();
+              const listed=[...document.querySelectorAll('#inspector-content .family-uses .item-link')].map(b=>b.dataset.itemId).sort();
+              return TauExplorer.getState().view==='collection' && links>0 && document.querySelectorAll('.tau-link').length===links
+                && ringed.length>0 && JSON.stringify(ringed)===JSON.stringify(members.filter(x=>shown.has(x)).sort()) && JSON.stringify(listed)===JSON.stringify(uses); }""", family))
             readme = page.evaluate("() => TauExplorer.data.taucetiProgress.readmeLayers[0] || null")
             if readme:
                 page.evaluate("id => TauExplorer.openItem(id)", readme)

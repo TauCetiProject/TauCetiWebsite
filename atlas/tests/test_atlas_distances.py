@@ -58,6 +58,25 @@ class Distances(unittest.TestCase):
         self.assertEqual([edge.get("cyclic") for edge in map_["edges"]], [True, True])
         self.assertEqual(out["A"]["structure"]["restsOn"], 0)
 
+    def family(self, origin):
+        # F is a family's index, with no layers, above F/A and F/B. F/B's README names F, which reads as F being its
+        # prerequisite; F names F/A among what it rests on. X and Y are outside the family.
+        map_ = atlas([("X", "F/A", 3), ("F/A", "F", 3), ("F", "F/B", 3), ("Y", "F/B", 3)])
+        map_["stages"] = [stage for stage in map_["stages"] if stage["owner"] != "F"]
+        for roadmap in map_["roadmaps"]:
+            roadmap.update(origin=origin, stages=[] if roadmap["id"] == "F" else [roadmap["id"] + ":1"],
+                           parentRoadmapId="F" if roadmap["id"].startswith("F/") else None)
+        return map_
+
+    def test_no_roadmap_rests_on_a_proposed_familys_index_and_the_family_counts_what_it_rests_on(self):
+        out = measure(self.family("proposed"))
+        self.assertEqual({rid: out[rid]["structure"]["restsOn"] for rid in ("F", "F/A", "F/B")}, {"F": 2, "F/A": 1, "F/B": 1})
+        # Outside the family: X and Y, through F/A and F/B.
+        self.assertEqual(out["F"]["structure"]["familyRestsOn"], 2)
+        self.assertNotIn("familyRestsOn", out["F/A"]["structure"])
+        # A family on main keeps the links of its index: F/B rests on F, and through it on F/A and X.
+        self.assertEqual(measure(self.family("tauceti"))["F/B"]["structure"]["restsOn"], 4)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -89,11 +89,18 @@ def unfinished(atlas: dict) -> dict:
 
 
 def measure(atlas: dict) -> dict:
-    """roadmap id -> its distance record: the distance, and what it rests on."""
+    """roadmap id -> its distance record: the distance, and what it rests on. A family (a roadmap with sub-roadmaps)
+    also counts what it rests on as a whole, outside it (familyRestsOn): the roadmaps its index and its sub-roadmaps
+    name as prerequisites, and what those rest on in turn over the links the distances keep.
+
+    A family's index proposed in a pull request is a collection, with no layers: no roadmap rests on it. A sub-roadmap
+    naming it names the family it belongs to, and what the family supplies comes from its sub-roadmaps, so it moves no
+    other roadmap. Its links stay on the map."""
     ids = {roadmap["id"] for roadmap in atlas["roadmaps"]}
+    indexes = {roadmap["id"] for roadmap in atlas["roadmaps"] if roadmap.get("origin") == "proposed" and roadmap.get("stages") == []}
     weights = {}
     for edge in atlas.get("edges", []):
-        if edge["source"] in ids and edge["target"] in ids and edge["source"] != edge["target"]:
+        if edge["source"] in ids and edge["target"] in ids and edge["source"] != edge["target"] and edge["source"] not in indexes:
             key = (edge["source"], edge["target"])
             kind = edge.get("kind")
             weights[key] = weights.get(key, 0) + ((edge.get("weight") or 0) if kind == "readme" else STATED if kind == "pull" else DECLARED)
@@ -120,7 +127,21 @@ def measure(atlas: dict) -> dict:
         below = max((chain[other] for other in prerequisites[roadmap_id] if other in chain), default=0)
         chain[roadmap_id] = below + (1 if left[roadmap_id] > 0 else 0)
     top = max(work.values(), default=0) or 1.0
+    below, outside = defaultdict(list), {}
+    for roadmap in atlas["roadmaps"]:
+        if roadmap.get("parentRoadmapId") in ids:
+            below[roadmap["parentRoadmapId"]].append(roadmap["id"])
+    for roadmap_id in sorted(below):
+        family, stack = {roadmap_id}, list(below[roadmap_id])
+        while stack:
+            other = stack.pop()
+            if other not in family:
+                family.add(other)
+                stack.extend(below[other])
+        direct = {edge["source"] for edge in atlas.get("edges", []) if edge["target"] in family and edge["source"] in ids}
+        outside[roadmap_id] = len(set().union(direct, *(rests[member] for member in family)) - family)
     return {roadmap_id: {"distance": round(10 * work[roadmap_id] / top, 2), "basis": "dependencies",
                          "structure": {"restsOn": len(rests[roadmap_id]), "proposed": len(rests[roadmap_id] & proposed), "unfinished": round(work[roadmap_id], 1),
-                                       "prerequisites": len(prerequisites[roadmap_id]), "chain": chain[roadmap_id]}}
+                                       "prerequisites": len(prerequisites[roadmap_id]), "chain": chain[roadmap_id],
+                                       **({"familyRestsOn": outside[roadmap_id]} if roadmap_id in outside else {})}}
             for roadmap_id in sorted(ids)}

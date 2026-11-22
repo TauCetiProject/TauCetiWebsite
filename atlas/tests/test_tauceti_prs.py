@@ -112,6 +112,41 @@ class AddProposed(unittest.TestCase):
         add_proposed(atlas, self.data(), {}, {})
         self.assertNotIn("tauceti:TauCetiRoadmap/Mystery", {r["id"] for r in atlas["roadmaps"]})
 
+    def family(self):
+        # Etale's README has no layers and is the folder above Curves and Weil; Weil's has none either and is above Purity.
+        # Lonely's has no layers and nothing below it. No rule places Weil, which goes where the map's grouping puts it.
+        layered = "\n\n## A1. Sheaves\n\nSheaves.\n\n## A2. Cohomology\n\nGroups.\n"
+        index = "\n\nThe roadmaps of this family, and how they depend on one another.\n\n## The roadmaps\n\n## Scope\n"
+        pull = {"number": 12, "url": "https://github.com/TauCetiProject/TauCetiRoadmap/pull/12", "author": "kim-em", "draft": False,
+                "labels": [], "head": "TauCetiProject/TauCetiRoadmap", "sha": "fed789"}
+        readmes = {"TauCetiRoadmap/Etale": "# Etale cohomology" + index, "TauCetiRoadmap/Etale/Curves": "# Etale cohomology of curves" + layered,
+                   "TauCetiRoadmap/Etale/Weil": "# The Weil conjectures" + index, "TauCetiRoadmap/Etale/Weil/Purity": "# Etale cohomology: purity" + layered,
+                   "TauCetiRoadmap/Lonely": "# Etale cohomology, an overview" + index}
+        return {"pulls": [pull], "roadmaps": {folder: {"pull": 12, "arxiv": None, "readme": text} for folder, text in readmes.items()}}
+
+    def test_a_proposed_family_index_is_a_collection_of_the_roadmaps_below_it(self):
+        atlas = self.atlas()
+        added = add_proposed(atlas, self.family(), {}, {}, fallback="schemes")
+        by_id = {r["id"]: r for r in atlas["roadmaps"]}
+        etale, weil = by_id.get("tauceti:TauCetiRoadmap/Etale"), by_id.get("tauceti:TauCetiRoadmap/Etale/Weil")
+        # Like Representation theory on main: no layers, and the roadmaps in its folder name it as their parent.
+        self.assertTrue(etale and weil)
+        self.assertEqual((etale["stages"], etale["origin"], etale["group"], etale["pull"]["number"]), ([], "proposed", "etale", 12))
+        self.assertEqual(etale["readmeUrl"], "https://raw.githubusercontent.com/TauCetiProject/TauCetiRoadmap/fed789/TauCetiRoadmap/Etale/README.md")
+        self.assertNotIn("layersFrom", etale)
+        self.assertFalse([s for s in atlas["stages"] if s["owner"] in (etale["id"], weil["id"])])
+        self.assertEqual({r["id"].split("/")[-1]: r["parentRoadmapId"].split("/")[-1] for r in atlas["roadmaps"] if r.get("parentRoadmapId")},
+                         {"Curves": "Etale", "Weil": "Etale", "Purity": "Weil"})
+        # A family below a family joins first, so that the one above has it on the map.
+        self.assertLess(added.index(weil["id"]), added.index(etale["id"]))
+        self.assertEqual(atlas["roadmapClassification"]["roadmaps"][etale["id"]]["basis"], "provisional")
+
+    def test_a_readme_without_layers_and_nothing_below_it_stays_off_the_map(self):
+        atlas = self.atlas()
+        added = add_proposed(atlas, self.family(), {}, {}, fallback="schemes")
+        self.assertNotIn("tauceti:TauCetiRoadmap/Lonely", added)
+        self.assertNotIn("tauceti:TauCetiRoadmap/Lonely", {r["id"] for r in atlas["roadmaps"]})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -51,6 +51,22 @@ class Categories(unittest.TestCase):
         found = categories_of(map_, {}, area_categories(AREAS))
         self.assertEqual(found, {"tauceti:P/Counting/One": ("math.AG", "area"), "tauceti:P/Counting/Two": ("math.AG", "links")})
 
+    def test_a_proposed_family_is_placed_last_and_moves_none_of_its_sub_roadmaps(self):
+        # Zeta (a pull request's family index, no layers) declares math.NT, Weil below it (no layers either) none; Curves and
+        # Purity declare none. They keep the places they have without the family: Curves its title's area, Purity its one link
+        # outside the family. Weil has the category of most of its sub-roadmaps.
+        map_ = atlas(("tauceti:T/Zeta", "algebraicnt"), ("tauceti:T/Zeta/Curves", "etale"), ("tauceti:T/Zeta/Weil", "unclassified"),
+                     ("tauceti:T/Zeta/Weil/Purity", "unclassified"), ("tauceti:T/Fields", "analysis"),
+                     links=[("tauceti:T/Zeta", "tauceti:T/Zeta/Weil/Purity"), ("tauceti:T/Zeta/Weil/Purity", "tauceti:T/Fields")])
+        parents = {"tauceti:T/Zeta/Curves": "tauceti:T/Zeta", "tauceti:T/Zeta/Weil": "tauceti:T/Zeta", "tauceti:T/Zeta/Weil/Purity": "tauceti:T/Zeta/Weil"}
+        for roadmap in map_["roadmaps"]:
+            roadmap.update(origin="proposed", stages=[] if roadmap["id"] in ("tauceti:T/Zeta", "tauceti:T/Zeta/Weil") else ["layer"],
+                           parentRoadmapId=parents.get(roadmap["id"]))
+        found = categories_of(map_, {"tauceti:T/Zeta": "math.NT", "tauceti:T/Fields": "math.FA"}, area_categories(AREAS))
+        self.assertEqual(found, {"tauceti:T/Zeta": ("math.NT", "declared"), "tauceti:T/Zeta/Curves": ("math.AG", "area"),
+                                 "tauceti:T/Zeta/Weil": ("math.FA", "children"), "tauceti:T/Zeta/Weil/Purity": ("math.FA", "links"),
+                                 "tauceti:T/Fields": ("math.FA", "declared")})
+
 
 class Grouping(unittest.TestCase):
     """The map's galaxies become the arXiv categories, round Mathlib in a fixed order."""

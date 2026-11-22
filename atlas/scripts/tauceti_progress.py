@@ -16,7 +16,10 @@ the build adds it to the map from that README and the board's list of its
 layers. The board reads only headings such as `## Layer 1: ...` or `## A1: ...`;
 when it lists no layers for a roadmap, they are read from the README's own
 labelled headings (`## A1. ...`, `## HF0. ...`, `## G.1 ...`), unassessed, and
-counted as such. It goes in the area a maintainer chose for it
+counted as such. A README with no layers at all is a family's index: it joins
+as a collection with no layers of its own, as Representation theory is in the
+snapshot, once one of the roadmaps whose parent it is is on the map. It goes
+in the area a maintainer chose for it
 (data/tauceti-placements.json); else in the area or field its title names;
 else in the area that holds more of the Tau Ceti roadmaps its README names than
 any other; and not at all until one of those says where it belongs. The title
@@ -320,11 +323,18 @@ def add_new_roadmaps(atlas: dict, progress: dict, readmes: dict, placements: dic
                      categories: dict | None = None, fallback: str | None = None) -> list:
     """Add the roadmaps the board reports and the atlas lacks, built from their READMEs; the ids added.
     Each goes to an area its arXiv category allows (data/tauceti-arxiv-areas.json), when it declares one;
-    one that nothing places goes to `fallback`, or is left out without one."""
+    one that nothing places goes to `fallback`, or is left out without one. A README with no layers joins
+    only as a family's index, a collection of the roadmaps whose parent it is, and only with one of them on the map."""
     placements = load_placements() if placements is None else placements
     categories = load_arxiv_areas() if categories is None else categories
     added = []
-    for row in unplaced(atlas, progress):
+    # A README with no layers at all is a family's index, as Representation theory's is: it joins as a collection, with
+    # no layers, once a roadmap whose parent it is is on the map. So the indexes come last, the deepest first, and every
+    # other roadmap is read as before.
+    rows = unplaced(atlas, progress)
+    index = {row["id"] for row in rows if not field(row, "layer_ids", []) and not readme_layers(readmes.get(row["id"]) or "")}
+    rows = [row for row in rows if row["id"] not in index] + sorted((row for row in rows if row["id"] in index), key=lambda row: -row["id"].count("/"))
+    for row in rows:
         text = readmes.get(row["id"])
         if not text:
             continue
@@ -375,12 +385,12 @@ def add_new_roadmaps(atlas: dict, progress: dict, readmes: dict, placements: dic
                 stages[-1]["consumers"].append(stage["id"])
                 edges.append({"source": stages[-1]["id"], "target": stage["id"], "origin": "tauceti", "evidence": {"sourcePath": row.get("readme"), "basis": "README order"}})
             stages.append(stage)
-        if not stages:
+        if not stages and not any(other.get("parentRoadmapId") == roadmap_id for other in atlas["roadmaps"]):
             continue
         atlas["roadmaps"].append({"id": roadmap_id, "title": title, "summary": summary(text), "readme": text, "origin": "tauceti", "lifecycle": "active",
                                   "group": group, "parentRoadmapId": ("tauceti:" + row["parent_id"]) if row.get("parent_id") else None,
                                   "sourcePath": row.get("readme"), "repositoryPath": row.get("readme"), "stages": [stage["id"] for stage in stages],
-                                  "prerequisites": [], "consumers": [], "sections": [], **({"layersFrom": "readme"} if from_readme else {})})
+                                  "prerequisites": [], "consumers": [], "sections": [], **({"layersFrom": "readme"} if from_readme and stages else {})})
         atlas["stages"] += stages
         atlas.setdefault("stageEdges", []).extend(edges)
         atlas.setdefault("roadmapLinks", []).extend({"source": roadmap_id, "target": other, "kind": "reference", "label": short_name(other), "anchor": ""} for other in named)

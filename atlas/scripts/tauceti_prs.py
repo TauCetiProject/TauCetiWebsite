@@ -4,7 +4,8 @@
 The atlas shows Tau Ceti's roadmaps (scripts/tauceti_progress.py) and, beside them, every roadmap an
 open pull request adds, whoever opened it. Each is read from the README on the pull request's branch,
 as a roadmap the Progress page lists without layers is: its layers from its headings, its area from
-its arXiv category (metadata.toml) and the roadmaps it names. A pull request that only edits a roadmap
+its arXiv category (metadata.toml) and the roadmaps it names. A README without layers above other roadmaps
+is a family's index, and joins as a collection, as families on main do. A pull request that only edits a roadmap
 already on main adds nothing here; the edit shows once it merges. Where two pull requests add the same
 roadmap, the one updated last is shown.
 
@@ -174,7 +175,8 @@ def add_proposed(atlas: dict, data: dict, placements: dict | None = None, catego
     """Add each roadmap an open pull request proposes, as tauceti_progress.add_new_roadmaps adds one Tau Ceti has
     accepted, but from the README on the pull request's branch: its layers unassessed, its area, and the roadmaps
     it names, proposed ones included. They have the origin "proposed" and their pull request. Returns the ids added.
-    With `fallback`, a roadmap no rule places goes there instead of waiting off the map."""
+    With `fallback`, a roadmap no rule places goes there instead of waiting off the map. A family's index, a README
+    without layers in the folder above roadmaps on the map, is a collection: it has no layers of its own."""
     pulls = {pull["number"]: pull for pull in data.get("pulls", [])}
     roadmaps = data.get("roadmaps", {})
     on_map = {roadmap["id"] for roadmap in atlas["roadmaps"]}

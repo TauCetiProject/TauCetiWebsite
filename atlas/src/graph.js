@@ -701,7 +701,7 @@
       // The distance rings' names keep one size on screen.
       this.layers.field.selectAll('text.tau-ring-label').attr('font-size', 10 / k);
       const active = this.isCoarse ? (this.selectedId || this.hoveredId) : (this.hoveredId || this.selectedId);
-      const activeNode = universe.byId.get(active) || null;
+      const activeNode = universe.byId.get(active) || null, family = this.familyOf(activeNode);
       const intersects = (x, y, r) => x + r > rect.x && x - r < rect.x + rect.w && y + r > rect.y && y - r < rect.y + rect.h;
       // On the sector map, where a sector's middle line leaves the chart, when the sector reaches that far: a name
       // waits there, at the edge, pointing the way along its sector.
@@ -864,12 +864,12 @@
       const diskItems = this.collectDisk(k, rect, labels, active, T);
       this.visible = { galaxies, constellations, stars, planets, artefacts, labels, disk: diskItems };
       this.renderDiskItems(diskItems, k, active);
-      this.renderConstellations(constellations, k, active);
+      this.renderConstellations(constellations, k, active, family);
       this.renderStars(stars, k, active);
       this.renderPlanets(planets, k, active);
       this.renderArtefacts(artefacts, k, active);
       this.renderLabels(labels, k);
-      this.renderLinks(activeNode, k);
+      this.renderLinks(activeNode, k, family);
       const galaxySelection = this.layers.galaxy.selectAll('g.tau-galaxy');
       const activeField = activeNode && activeNode.level === 'field' ? new Set(activeNode.galaxyIds) : null;
       galaxySelection.select('.tau-galaxy-ring').attr('opacity', d => active === d.id ? .55 : activeField && activeField.has(d.id) ? .4 : 0);
@@ -906,20 +906,26 @@
       this.positionLive();
     }
 
-    renderConstellations(items, k, active) {
+    renderConstellations(items, k, active, family) {
       const graph = this;
       const join = this.layers.constellation.selectAll('g.tau-constellation').data(items, d => d.id);
       join.exit().remove();
+      const kin = d => (d.members || []).length ? `. Family of ${d.members.length} roadmap${d.members.length === 1 ? '' : 's'}` : '. Roadmap';
       const enter = join.enter().append('g').attr('class', d => 'tau-node tau-constellation' + (d.unmapped ? ' tau-unmapped-node' : '')).attr('data-node-id', d => d.id).attr('data-level', 'constellation')
-        .attr('transform', d => `translate(${d.x},${d.y})`).attr('tabindex', 0).attr('role', 'button').attr('aria-label', d => normalizeText(d.label) + (d.unmapped ? '. Area without a roadmap' : '. Roadmap' + (progressDescription(d) ? ', ' + progressDescription(d) : '')));
+        .attr('transform', d => `translate(${d.x},${d.y})`).attr('tabindex', 0).attr('role', 'button').attr('aria-label', d => normalizeText(d.label) + (d.unmapped ? '. Area without a roadmap' : kin(d) + (progressDescription(d) ? ', ' + progressDescription(d) : '')));
       enter.append('circle').attr('class', 'tau-hit');
       enter.append('circle').attr('class', 'tau-constellation-disc').attr('fill', '#b9cad9');
       enter.append('circle').attr('class', 'tau-beacon tau-survey-beacon');
       enter.append('circle').attr('class', 'tau-ring tau-select-ring').attr('fill', 'none').attr('stroke', ACCENT).attr('vector-effect', 'non-scaling-stroke').attr('stroke-width', 1.4);
-      enter.append('title').text(d => normalizeText(d.label) + (progressDescription(d) ? '\n' + progressDescription(d) : '') + '\nClick to open');
+      enter.append('title').text(d => normalizeText(d.label) + (progressDescription(d) ? '\n' + progressDescription(d) : '') +
+        ((d.members || []).length ? `\nA family of ${d.members.length} roadmap${d.members.length === 1 ? '' : 's'}: point at it to see what they rest on` : '') + '\nClick to open');
       this.bindInteractions(enter);
       const all = enter.merge(join);
-      all.classed('is-selected', d => d.id === this.selectedId).classed('is-hovered', d => d.id === this.hoveredId).attr('data-progress', d => progressValue(d.progress)).attr('data-resolved', d => String(!!d.resolved));
+      // A family pointed at rings its sub-roadmaps as it is ringed, and the roadmaps outside it that they rest on with a
+      // dashed ring, at the far ends of its links.
+      const member = d => !!family && d.id !== active && family.inside.has(d.id), use = d => !!family && family.uses.has(d.id);
+      all.classed('is-selected', d => d.id === this.selectedId).classed('is-hovered', d => d.id === this.hoveredId).attr('data-progress', d => progressValue(d.progress)).attr('data-resolved', d => String(!!d.resolved))
+        .classed('is-family-member', member).classed('is-family-use', use);
       // A target never reaches past the midpoint to its nearest neighbour, so
       // a tap lands on the object under the finger and nothing else.
       all.select('.tau-hit').attr('r', d => Math.min(d.resolved ? d.r * 1.08 : Math.max(d.r, (graph.isCoarse ? 14 : 11) / k), Math.max(d.r * .6, (d.spacing || d.r * 4) * .48)));
@@ -927,7 +933,8 @@
       all.select('.tau-beacon').attr('r', d => d.resolved ? 0 : d.unmapped ? Math.max(2.4 / k, Math.min(d.r, 3 / k)) : Math.max(2.4 / k, Math.min(d.r * .9, (2.4 + Math.min(2.4, d.r * k * .1)) / k)))
         .attr('fill', d => !d.unmapped && hasProgress(d) ? accentOf(d) : BACKGROUND).attr('stroke', d => d.unmapped ? '#8a99a8' : hasProgress(d) ? accentOf(d) : NO_PROGRESS)
         .attr('stroke-width', d => (d.unmapped ? 1 : 1.1) / k).attr('stroke-dasharray', d => d.unmapped ? `${2 / k} ${2 / k}` : null).attr('opacity', d => d.resolved ? 0 : 1);
-      all.select('.tau-select-ring').attr('r', d => d.resolved ? d.r * 1.16 : Math.max(d.r * .9, 7 / k)).attr('opacity', d => active === d.id ? .9 : 0);
+      all.select('.tau-select-ring').attr('r', d => d.resolved ? d.r * 1.16 : Math.max(d.r * .9, 7 / k)).attr('opacity', d => active === d.id ? .9 : member(d) ? .75 : use(d) ? .6 : 0)
+        .attr('stroke-dasharray', d => use(d) ? '2.5 2' : null);
       // Constellation figures: the faint shape that makes a roadmap a constellation.
       const figures = [];
       items.filter(d => d.resolved).forEach(d => d.figure.forEach((segment, index) => figures.push({ id: d.id + '#' + index, ...segment, constellation: d })));
@@ -1163,7 +1170,19 @@
       return boxes;
     }
 
-    renderLinks(activeNode, k) {
+    // A family pointed at (a roadmap with sub-roadmaps, whose `members` src/app.js gives): its index and its sub-roadmaps on
+    // the map, and the roadmaps outside it that they rest on directly. Kept on the node until the universe is built again.
+    familyOf(node) {
+      if (!node || node.level !== 'constellation' || !(node.members || []).length) return null;
+      if (!node.family) {
+        const inside = new Set([node.id, ...node.members]), uses = new Set();
+        this.universe.constellationEdges.forEach(edge => { if (inside.has(edge.target) && !inside.has(edge.source)) uses.add(edge.source); });
+        node.family = { inside, uses };
+      }
+      return node.family;
+    }
+
+    renderLinks(activeNode, k, family) {
       const links = [];
       if (activeNode) {
         const universe = this.universe;
@@ -1180,8 +1199,11 @@
             level: 'star', source: edge.source, target: edge.target });
         });
         if (activeNode.level === 'constellation') {
+          // A roadmap's own links; a family's too, and the links into its sub-roadmaps from the roadmaps outside it that
+          // they rest on. Links within a family are not its point and are left out.
+          const inside = family ? family.inside : new Set([activeNode.id]);
           universe.constellationEdges.forEach((edge, index) => {
-            if (edge.source !== activeNode.id && edge.target !== activeNode.id) return;
+            if ((edge.source !== activeNode.id && edge.target !== activeNode.id && !inside.has(edge.target)) || (inside.has(edge.source) && inside.has(edge.target))) return;
             const a = universe.byId.get(edge.source), b = universe.byId.get(edge.target);
             links.push({ id: 'roadmap:' + index, ...curve(a, b, Math.min(60, Math.hypot(b.x - a.x, b.y - a.y) * .1)), arrow: true, reference: false,
               level: 'constellation', source: edge.source, target: edge.target, count: edge.count });
@@ -1242,7 +1264,7 @@
           if (next !== graph.hoveredLinkId) { graph.hoveredLinkId = next; graph.scheduleRender(); }
         })
         .on('mouseleave', () => { if (!graph.isCoarse) { graph.hoveredLinkId = null; if (!graph.keepsHover(d3.event)) graph.hoveredId = null; graph.scheduleRender(); } })
-        .merge(hits).attr('d', d => d.hit).attr('data-source', d => d.source).attr('data-target', d => d.target)
+        .merge(hits).attr('d', d => d.hit).attr('data-source', d => d.source).attr('data-target', d => d.target).attr('data-for', activeNode ? activeNode.id : null)
         .attr('aria-label', d => `${d.reference ? 'Related plans' : d.level === 'artefact' ? 'Needed by the paper' : 'Prerequisite'}: ${name(d.source)} to ${name(d.target)}`);
       this.renderLinkCard(links.find(link => link.id === chosen), name, k);
     }
@@ -1285,11 +1307,12 @@
 
     // Whether the pointer, leaving for event.relatedTarget, is still on the hovered object or on one of its links. A
     // hovered roadmap's links are drawn above it, and their wide edges start at its centre: far out, where the roadmap is
-    // a point, they cover it at once, and without this the hover would end, the links go, and the hover begin again.
+    // a point, they cover it at once, and without this the hover would end, the links go, and the hover begin again. A
+    // family's links into its sub-roadmaps may cross its own point anywhere: they are its links too (data-for).
     keepsHover(event) {
       const to = event && event.relatedTarget, id = this.hoveredId;
       if (!id || !to || !to.closest) return false;
-      if (to.classList && to.classList.contains('tau-link-hit')) return to.getAttribute('data-source') === id || to.getAttribute('data-target') === id;
+      if (to.classList && to.classList.contains('tau-link-hit')) return to.getAttribute('data-source') === id || to.getAttribute('data-target') === id || to.getAttribute('data-for') === id;
       const owner = to.closest('[data-node-id]');
       return !!owner && owner.getAttribute('data-node-id') === id;
     }

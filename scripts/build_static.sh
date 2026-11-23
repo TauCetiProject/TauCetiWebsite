@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Generate the data taucetiproject.org has always published under /static/ (progress.json,
 # pr-stats.json, pipeline-health.json, roadmap-completion.json, the chart SVGs), with the same
-# generators TauCeti's old Pages build ran: TauCetiTools at the commit TauCeti pins, configured by
+# generators TauCeti's old Pages build ran: TauCetiTools at the ref TauCeti runs, configured by
 # TauCeti's own tauceti.toml and scripts/. Workers and other tools poll these paths, so the site
 # serves them at /static/ as before.
 #
@@ -25,10 +25,12 @@ trap 'rm -rf "$work"' EXIT
 failures=()
 fail() { echo "::warning::$1 failed; keeping its previous files"; failures+=("$1"); }
 
-# The pins TauCeti's own workflows use, so the generators match the policy files in its scripts/.
-tools_ref=$(grep -ohE 'TauCetiTools/\.github/actions/setup@[0-9a-f]{40}' "$tauceti/.github/workflows/pages.yml" | head -1 | cut -d@ -f2)
-review_ref=$(grep -A3 'repository: TauCetiProject/TauCetiReview' "$tauceti/.github/actions/checkout-merge-policy/action.yml" | grep -oE '[0-9a-f]{40}' | head -1)
-[ -n "$tools_ref" ] || { echo "no TauCetiTools pin in TauCeti's pages.yml" >&2; exit 2; }
+# The refs TauCeti's own workflows use, so the generators match the policy files in its scripts/.
+# Each is a commit or, since TauCeti moved to running both from main (2026-11-18), a branch.
+tools_ref=$(grep -ohE 'TauCetiTools/\.github/actions/setup@[A-Za-z0-9._/-]+' "$tauceti/.github/workflows/pages.yml" | head -1 | cut -d@ -f2)
+review_ref=$(grep -A3 'repository: TauCetiProject/TauCetiReview' "$tauceti/.github/actions/checkout-merge-policy/action.yml" \
+  | sed -nE 's/^[[:space:]]*ref:[[:space:]]*["'"'"']?([A-Za-z0-9._/-]+)["'"'"']?[[:space:]]*(#.*)?$/\1/p' | head -1)
+[ -n "$tools_ref" ] || { echo "no TauCetiTools ref in TauCeti's pages.yml" >&2; exit 2; }
 
 git clone --quiet --filter=blob:none https://github.com/TauCetiProject/TauCetiTools.git "$work/tools"
 git -C "$work/tools" checkout --quiet "$tools_ref"

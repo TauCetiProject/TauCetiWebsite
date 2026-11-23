@@ -27,18 +27,27 @@ fail() { echo "::warning::$1 failed; keeping its previous files"; failures+=("$1
 
 # The refs TauCeti's own workflows use, so the generators match the policy files in its scripts/.
 # Each is a commit or, since TauCeti moved to running both from main (2026-11-18), a branch.
-tools_ref=$(grep -ohE 'TauCetiTools/\.github/actions/setup@[A-Za-z0-9._/-]+' "$tauceti/.github/workflows/pages.yml" | head -1 | cut -d@ -f2)
-review_ref=$(grep -A3 'repository: TauCetiProject/TauCetiReview' "$tauceti/.github/actions/checkout-merge-policy/action.yml" \
-  | sed -nE 's/^[[:space:]]*ref:[[:space:]]*["'"'"']?([A-Za-z0-9._/-]+)["'"'"']?[[:space:]]*(#.*)?$/\1/p' | head -1)
+# Commented-out lines are skipped; a ref is a whole YAML scalar, quoted or not.
+ref_chars='[^[:space:]"'"'"'#]+'
+tools_ref=$(grep -vE '^[[:space:]]*#' "$tauceti/.github/workflows/pages.yml" \
+  | grep -ohE "TauCetiTools/\.github/actions/setup@$ref_chars" | head -1 | cut -d@ -f2)
+review_ref=$(grep -vE '^[[:space:]]*#' "$tauceti/.github/actions/checkout-merge-policy/action.yml" \
+  | grep -A3 -E "repository:[[:space:]]*[\"']?TauCetiProject/TauCetiReview[\"']?[[:space:]]*(#.*)?$" \
+  | sed -nE "s/^[[:space:]]*ref:[[:space:]]*[\"']?($ref_chars)[\"']?[[:space:]]*(#.*)?\$/\\1/p" | head -1)
 [ -n "$tools_ref" ] || { echo "no TauCetiTools ref in TauCeti's pages.yml" >&2; exit 2; }
+[ -n "$review_ref" ] || echo "::warning::no TauCetiReview ref in TauCeti's checkout-merge-policy action"
 
-git clone --quiet --filter=blob:none https://github.com/TauCetiProject/TauCetiTools.git "$work/tools"
-git -C "$work/tools" checkout --quiet "$tools_ref"
+# Every generator runs from this checkout, so failing to make it stops the run rather than letting
+# the clone's default branch stand in for the ref.
+git clone --quiet --filter=blob:none https://github.com/TauCetiProject/TauCetiTools.git "$work/tools" \
+  && git -C "$work/tools" checkout --quiet "$tools_ref" \
+  || { echo "could not check out TauCetiTools at $tools_ref" >&2; exit 2; }
 export PYTHONPATH="$work/tools${PYTHONPATH:+:$PYTHONPATH}"
 # The generators import their shared modules from TauCeti's scripts/, as in TauCeti's own runs; the
 # clone is scratch, so materializing into it is safe.
-python3 -m tauceti_tools materialize "$work/shared" --conf "$tauceti/tauceti.toml" --policy-dir "$tauceti/scripts"
-cp -a "$work/shared/." "$tauceti/scripts/"
+python3 -m tauceti_tools materialize "$work/shared" --conf "$tauceti/tauceti.toml" --policy-dir "$tauceti/scripts" \
+  && cp -a "$work/shared/." "$tauceti/scripts/" \
+  || { echo "could not materialize TauCetiTools's shared scripts" >&2; exit 2; }
 if [ -n "$review_ref" ] && [ ! -d "$tauceti/.tauceti-review" ]; then
   git clone --quiet --filter=blob:none --no-checkout https://github.com/TauCetiProject/TauCetiReview.git "$tauceti/.tauceti-review" \
     && git -C "$tauceti/.tauceti-review" sparse-checkout set runner \

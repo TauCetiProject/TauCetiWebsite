@@ -31,8 +31,8 @@ the review app's tests pass against the data repository (`REVIEW_DATA_REPO`).
 - `scripts/build_static.sh` generates the data taucetiproject.org has always served under `/static/`
   (`progress.json`, `pr-stats.json`, `roadmap-completion.json`, `pipeline-health.json` and the chart
   SVGs) into `data/static/`, which the build copies to `static/`. Workers and other tools poll these
-  paths. It runs the generators TauCeti's own Pages build ran: TauCetiTools at the commit TauCeti's
-  workflows pin, configured by TauCeti's `tauceti.toml` and `scripts/`. The pull-request snapshot it
+  paths. It runs the generators TauCeti's own Pages build ran: TauCetiTools at the ref TauCeti's
+  workflows use (a commit or a branch), configured by TauCeti's `tauceti.toml` and `scripts/`. The pull-request snapshot it
   keeps in `data/cache/` makes a warm run a handful of requests; a cold one walks every pull request,
   about 4,600 GraphQL requests.
 - `scripts/build_data.py` generates the rest, into `data/`:

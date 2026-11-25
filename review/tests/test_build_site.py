@@ -1,3 +1,4 @@
+import gzip
 import json
 import shutil
 import sys
@@ -32,7 +33,11 @@ def tearDownModule():
 
 
 def data(path: str, root: Path | None = None):
-    return json.loads(((root or OUT / "site") / "data" / path).read_text(encoding="utf-8"))
+    """A file of the built site's data, parsed. A module's file (`m/`, `u/`) is on disk gzipped, as `<path>.gz`."""
+    file = (root or OUT / "site") / "data" / path
+    if path.startswith(("m/", "u/")):
+        return json.loads(gzip.decompress(file.with_name(file.name + ".gz").read_bytes()))
+    return json.loads(file.read_text(encoding="utf-8"))
 
 
 def node_id(name: str, root: Path | None = None) -> int:

@@ -10,6 +10,7 @@ fails when the site is larger than its budget: GitHub Pages serves at most 1 GB.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import os
 import shutil
@@ -37,6 +38,19 @@ def write(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
 
+def write_packed(path: Path, data) -> Path:
+    """A module's file, gzipped at `<path>.gz` (web/data.js unpacks it), as the review data repository's build
+    writes it since 2026-11-24: GitHub Pages serves at most 1 GB, and with the library's module files (data/m/) as
+    plain JSON its site was 1145 MB; gzipped it is 622 MB. This app reads that repository's published data/, so it
+    asks for `<path>.gz`, and this build writes the fixture the same way. Every other file stays plain JSON. The
+    gzip carries no time, so the same data gives the same file."""
+    path = path.with_name(path.name + ".gz")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    path.write_bytes(gzip.compress(raw, compresslevel=9, mtime=0))
+    return path
+
+
 def build(dataset: Path, store: Path, out: Path, settings: dict, source: Path | None = None,
           imports: Path | None = None, web: Path = ROOT / "web", budget_mb: int = 800,
           cap: int = site_data.CAP) -> dict:
@@ -54,9 +68,9 @@ def build(dataset: Path, store: Path, out: Path, settings: dict, source: Path | 
     for k, reviews in site.standard_shards().items():
         write(data / "standard" / f"{k}.json", reviews)
     for mi in range(site.project_modules):
-        write(data / "m" / f"{mi}.json", site.module_file(mi))
+        write_packed(data / "m" / f"{mi}.json", site.module_file(mi))
     for mi in range(site.project_modules, len(site.modules)):
-        write(data / "u" / f"{mi}.json", site.outside_module_file(mi))
+        write_packed(data / "u" / f"{mi}.json", site.outside_module_file(mi))
     write(data / "modules.json", site.modules)
     names, titles = site.search()
     write(data / "search.json", names)

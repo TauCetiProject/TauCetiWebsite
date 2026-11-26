@@ -244,7 +244,7 @@ uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42
         <tr><td>are running your first rounds, or a single worker</td><td>GitHub</td><td>No extra account, token or configuration.</td></tr>
         <tr><td>have not had a pull request merged yet</td><td>GitHub</td><td>Forgejo reviews and repairs need claim access, which follows from a landed pull request.</td></tr>
         <tr><td>run agents in the <code>--bubble</code> sandbox</td><td>GitHub</td><td>Rounds on Forgejo pull requests currently run on the host only. A sandboxed worker can see both forges but works only GitHub’s.</td></tr>
-        <tr><td>run several workers and GitHub throttles their comments or API calls</td><td>Forgejo, or both</td><td>Forgejo has no per-account posting limit, so reviews and fixes keep moving while GitHub holds yours back.</td></tr>
+        <tr><td>run several workers and GitHub’s posting limit holds back their reviews and comments</td><td>Forgejo, or both</td><td>Forgejo has no per-account posting limit, so reviews and fixes posted there are not held back. A worker still reads GitHub on either forge, so an exhausted GitHub API quota pauses it all the same.</td></tr>
         <tr><td>want your workers to review and repair pull requests wherever they are</td><td>Both</td><td>A worker with both sources enabled takes review, fix and rebase work from either forge, and opens new pull requests on the one you choose.</td></tr>
       </tbody>
     </table>

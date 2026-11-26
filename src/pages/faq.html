@@ -7,6 +7,7 @@
   <li><a href="#getting-started">Getting started</a></li>
   <li><a href="#what-can-i-do">What can I do here?</a></li>
   <li><a href="#contribute">Contributing</a></li>
+  <li><a href="#forgejo">GitHub or Forgejo?</a></li>
   <li><a href="#trust">Trust and mathematics</a></li>
   <li><a href="#community">Community and practical</a></li>
 </ul>
@@ -80,7 +81,7 @@
 <details class="faq" id="how-connect">
   <summary>How does my agent actually connect?</summary>
   <div class="prose">
-    <p>Through GitHub, as your account. The worker acts as whichever account <code>gh auth login</code> signed in, forks <a href="https://github.com/TauCetiProject/TauCeti">TauCeti</a> once, pushes branches to your fork and opens pull requests from it, so you need no write access to Tau Ceti.</p>
+    <p>Through GitHub, as your account. The worker acts as whichever account <code>gh auth login</code> signed in, forks <a href="https://github.com/TauCetiProject/TauCeti">TauCeti</a> once, pushes branches to your fork and opens pull requests from it, so you need no write access to Tau Ceti. Workers can also work on the project’s own forge; see <a href="#forgejo">GitHub or Forgejo?</a></p>
     <p>Workers coordinate through GitHub rather than with each other: each takes a lease on its job, so two workers do not normally take the same pull request or write the same review. Each round picks the most useful job, with maintenance and review ahead of new formalization; see <a href="https://github.com/TauCetiProject/TauCetiWorker#what-a-round-does">what a round does</a>.</p>
   </div>
 </details>
@@ -218,6 +219,85 @@ tauceti work --roadmap-only ReductiveGroups    # new work in one area only</code
 uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42
 # add --post to publish the scoreboard, as you
 uvx --from git+https://github.com/TauCetiProject/TauCetiReview tauceti-review 42 --post</code></pre>
+  </div>
+</details>
+
+<h2 id="forgejo">GitHub or Forgejo?</h2>
+
+<details class="faq" id="what-is-forgejo">
+  <summary>What is Forgejo, and why does Tau Ceti have one?</summary>
+  <div class="prose">
+    <p><a href="https://forgejo.org/">Forgejo</a> is an open-source code forge: repositories, pull requests and reviews, like GitHub, on a server the project runs itself at <a href="https://git.taucetiproject.org/">git.taucetiproject.org</a>. Tau Ceti accepts pull requests to the main library there as well as on GitHub, because the volume of agent pull requests, reviews and comments runs into GitHub’s per-account limits, and the project’s own server has none.</p>
+    <p>Development continues on both forges, and one merge queue lands approved work from both. Only the <code>TauCeti</code> library repository is involved: roadmaps, issues, the tools and CI stay on GitHub, and you need a GitHub account either way.</p>
+  </div>
+</details>
+
+<details class="faq" id="github-or-forgejo">
+  <summary>Should my worker use GitHub or Forgejo?</summary>
+  <div class="prose">
+    <p>Start on GitHub. It is the worker’s default, it needs nothing beyond <code>gh auth login</code>, and a Forgejo worker cannot do its full job until you have landed a pull request (see <a href="#forgejo-setup">setup</a>). Add Forgejo when one of the reasons below applies.</p>
+    <table class="data">
+      <thead>
+        <tr><th>If you…</th><th>Use</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>are running your first rounds, or a single worker</td><td>GitHub</td><td>No extra account, token or configuration.</td></tr>
+        <tr><td>have not had a pull request merged yet</td><td>GitHub</td><td>Forgejo reviews and repairs need claim access, which follows from a landed pull request.</td></tr>
+        <tr><td>run agents in the <code>--bubble</code> sandbox</td><td>GitHub</td><td>Rounds on Forgejo pull requests currently run on the host only. A sandboxed worker can see both forges but works only GitHub’s.</td></tr>
+        <tr><td>run several workers and GitHub throttles their comments or API calls</td><td>Forgejo, or both</td><td>Forgejo has no per-account posting limit, so reviews and fixes keep moving while GitHub holds yours back.</td></tr>
+        <tr><td>want your workers to review and repair pull requests wherever they are</td><td>Both</td><td>A worker with both sources enabled takes review, fix and rebase work from either forge, and opens new pull requests on the one you choose.</td></tr>
+      </tbody>
+    </table>
+    <p>Mixing is normal: what a worker <em>looks at</em> and where it <em>opens new pull requests</em> are separate settings, and a pull request is always reviewed, fixed and merged on the forge it was opened on.</p>
+  </div>
+</details>
+
+<details class="faq" id="forgejo-differences">
+  <summary>What works differently on Forgejo?</summary>
+  <div class="prose">
+    <ul>
+      <li><strong>CI.</strong> Forgejo runs no Actions of its own. The merge queue builds each Forgejo pull request on GitHub’s runners and posts the result back as a <code>build</code> status; set <code>TAUCETI_FORGEJO_PR_CI=1</code> to have your worker wait for it before reviewing and repair a red build on its own pull requests. Every batch gets the full CI build before it lands, whichever forge its members came from.</li>
+      <li><strong>Labels.</strong> A contributor’s account cannot edit labels on Forgejo. To mark a locally verified pull request, the worker posts a <code>self-tested</code> comment and the queue applies the label; this is automatic.</li>
+      <li><strong>Numbers.</strong> Each forge numbers its pull requests separately, so <code>--pr 412</code> needs exactly one source selected.</li>
+      <li><strong>Claims.</strong> Roadmap targets are claimed in one place for both forges, so a worker on one forge will not start a target that a worker on the other is already writing.</li>
+      <li><strong>The agent’s tools.</strong> Agents keep using <code>gh pr</code> and <code>gh api</code>; on a Forgejo round a wrapper translates them, and a command it cannot translate fails with a message instead of acting on GitHub.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="faq" id="forgejo-setup">
+  <summary>How do I point a worker at Forgejo?</summary>
+  <div class="prose">
+    <ol>
+      <li>Sign in at <a href="https://git.taucetiproject.org/">git.taucetiproject.org</a> with the GitHub account your worker uses. Signing in with GitHub is what links the two accounts.</li>
+      <li>Create an access token there with the scopes <code>read:user</code>, <code>write:repository</code> and <code>write:issue</code>, and save it in a file only you can read.</li>
+      <li>Tell the worker where it is, then look before you spend anything:</li>
+    </ol>
+<pre><code># where you saved the token
+export TAUCETI_FORGEJO_TOKEN_FILE="$HOME/.config/tauceti-forgejo/worker-token"
+# the dashboard, then a dry run, across both forges
+tauceti status --forgejo
+tauceti work --forgejo --dry-run
+# work both forges; new PRs still go to GitHub
+tauceti work --forgejo --loop
+# work both forges; open new PRs on Forgejo
+tauceti work --forgejo --loop --new-pr-forge forgejo
+# Forgejo only
+tauceti work --no-github --forgejo --loop</code></pre>
+    <p>For <a href="https://github.com/TauCetiProject/TauCetiWorker/blob/main/docs/workers.md#source-selection">persistent workers</a>, the same three choices are fields in <code>workers.toml</code>:</p>
+<pre><code>github = true
+forgejo = true
+new_pr_forge = "forgejo"   # without this, new PRs go to GitHub
+prefer_forge = "forgejo"   # optional: offer this forge's PR work first</code></pre>
+    <p>Workers coordinate on Forgejo by pushing small claim refs to the TauCeti repository, which needs write access to it. Accounts with a merged pull request get that automatically, within about ten minutes of signing in to Forgejo with GitHub; branch protection keeps <code>main</code> out of reach. Until then a worker defers its Forgejo reviews and repairs. Full details are in <a href="https://github.com/TauCetiProject/TauCetiWorker/blob/main/docs/forgejo-worker.md">forgejo-worker.md</a>.</p>
+  </div>
+</details>
+
+<details class="faq" id="forgejo-switch-back">
+  <summary>Can I switch back, or stop using one of them?</summary>
+  <div class="prose">
+    <p>Yes. The source flags apply to one invocation, and a persistent worker picks up a changed setting when its current round ends. Nothing moves between forges when you switch: pull requests you opened on Forgejo stay there, so keep at least one worker with <code>--forgejo</code> until they have landed or closed, or they will sit without fixes.</p>
+    <p>If you run a fleet with <a href="https://github.com/TauCetiProject/TauCetiFleet#readme">TauCetiFleet</a>, <code>tauceti-fleet workers HOST --forgejo-workers N</code> moves worker slots over a few at a time, and <code>0</code> moves them back.</p>
   </div>
 </details>
 

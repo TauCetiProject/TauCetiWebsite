@@ -5,10 +5,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -28,6 +33,7 @@ from roadmap_dependencies import add_dependencies, follow_pull_requests  # noqa:
 from arxiv_groups import UNCLASSIFIED, group_by_arxiv  # noqa: E402
 from atlas_distances import measure as measure_page_distances  # noqa: E402
 from disk_layout import layout as disk_layout  # noqa: E402
+from lazy_data import FOLDER as PARTS_FOLDER, encode as encode_part, inline_part, split as split_lazy, write_parts  # noqa: E402
 
 
 def load_decompositions() -> list:
@@ -57,6 +63,62 @@ REPOSITORY = "https://github.com/CBirkbeck/tauceti-explorer"
 
 def comment_text(text: str) -> str:
     return text.replace("--", "—")
+
+
+def derive(atlas: dict) -> tuple[str, dict, dict]:
+    """What the page drew and cited from the roadmaps' READMEs and the layers' descriptions when it started (the
+    planets, their names, the citations' README lines, each roadmap's bibliography), made here by the page's own
+    code (scripts/derive.js), which also checks it against what that code makes of the whole text. The page has
+    no README to work from, so this needs Node (ATLAS_NODE, or `node` on the path). Returns the derived data as
+    JSON text, as Node wrote it, each roadmap's own bibliography, and each README's words for the search."""
+    node = os.environ.get("ATLAS_NODE") or shutil.which("node") or shutil.which("nodejs")
+    if not node:
+        raise ValueError("The build needs Node to prepare what the page draws from the roadmaps' text (scripts/derive.js); "
+                         "put `node` on the path or name it in ATLAS_NODE.")
+    with tempfile.TemporaryDirectory(prefix="atlas-derive-") as folder:
+        path = Path(folder) / "atlas.json"
+        path.write_text(json.dumps(atlas, ensure_ascii=False), encoding="utf-8")
+        result = subprocess.run([node, "--max-old-space-size=4096", str(ROOT / "scripts" / "derive.js"), str(path), folder],
+                                capture_output=True, text=True, encoding="utf-8")
+        if result.returncode:
+            raise ValueError("scripts/derive.js failed: " + result.stderr.strip()[-2000:])
+        read = lambda name: (Path(folder) / name).read_text(encoding="utf-8")
+        return read("derived.json"), json.loads(read("bibliographies.json")), json.loads(read("words.json"))
+
+
+SITE = "https://taucetiproject.org/"
+
+
+def link_roadmaps(atlas: dict, rows: dict, sources: dict, stale: frozenset = frozenset()) -> dict:
+    """Give each roadmap the link the page shows in place of its README, and the address its README's lines are
+    cited at. The page no longer carries the README.
+
+    `page`: the roadmap's page on the website, roadmap.html?id=<its row's id on the Progress page>, when the
+    Progress page has a row for it (`rows`, scripts/tauceti_progress.py); otherwise its README on GitHub.
+    `readmeSource`: the README on GitHub as this build read it (`sources`), which line numbers refer to. For a
+    roadmap in `stale`, whose copy here is older than the README on main, it is the README on main, and
+    `readmeLines` is false: the copy's line numbers are not that file's, so citations link to the file, not a line.
+    A link is given only where this build has seen what it points to: the row, or the README it read at that
+    address. Returns how many roadmaps got which."""
+    site = os.environ.get("ATLAS_SITE_URL", SITE).rstrip("/") + "/"
+    counts = Counter()
+    for roadmap in atlas["roadmaps"]:
+        source = sources.get(roadmap["id"]) or ""
+        github = source if re.match(r"^https://github\.com/[^\s\"<>]+$", source) else None
+        pull = (roadmap.get("pull") or {}).get("url") or ""
+        if github:
+            roadmap["readmeSource"] = github
+            if roadmap["id"] in stale:
+                roadmap["readmeLines"] = False
+        row = rows.get(roadmap["id"])
+        if row and row.get("id"):
+            roadmap["page"] = {"href": site + "roadmap.html?id=" + quote(row["id"], safe=""), "on": "site"}
+        elif github:
+            roadmap["page"] = {"href": github, "on": "github"}
+        elif re.match(r"^https://github\.com/[^\s\"<>]+/pull/\d+$", pull):
+            roadmap["page"] = {"href": pull, "on": "pull"}
+        counts[(roadmap.get("page") or {}).get("on", "none")] += 1
+    return dict(counts)
 
 
 def assemble(require_distances: bool = True, blueprints: Path | None = None) -> tuple:
@@ -215,7 +277,7 @@ def assemble(require_distances: bool = True, blueprints: Path | None = None) -> 
     return atlas, {"retired": retired, "linkPackets": link_packets, "originalStageCount": original_stage_count, "blueprints": packets}
 
 
-def build(output: Path, blueprints: Path | None = None, variant: str | None = None) -> dict:
+def build(output: Path, blueprints: Path | None = None, variant: str | None = None, self_contained: bool = False) -> dict:
     # Only the campaign's own map shows the distances of its planned roadmaps; the published pages do not need them.
     atlas, context = assemble(require_distances=variant == "campaign", blueprints=blueprints)
     # Roadmaps Tau Ceti has accepted since the snapshot join the map from their READMEs, so each
@@ -278,6 +340,16 @@ def build(output: Path, blueprints: Path | None = None, variant: str | None = No
                     readmes[r["id"]] = (entry.get("readme") or "", folder(r["id"]), r.get("sourcePath") or "")
                     declared[r["id"]] = entry.get("arxiv")
         atlas["meta"]["readmePrerequisites"] = add_dependencies(atlas, readmes)
+        # In place of each README, which the page no longer carries: a link to the roadmap's page on the website.
+        # A Tau Ceti README read from the snapshot's working tree, which main has since changed, is cited on main: the
+        # snapshot's commit is not on GitHub, so its own address leads nowhere. One with no row to say where it is on
+        # main is not cited at all.
+        on_main = {roadmap_id: TAUCETI_BLOB + rows[roadmap_id]["readme"] for roadmap_id in readmes if (rows.get(roadmap_id) or {}).get("readme")}
+        proposed = {roadmap["id"] for roadmap in atlas["roadmaps"] if roadmap.get("origin") == "proposed"}
+        stale = frozenset(roadmap_id for roadmap_id, entry in readmes.items() if roadmap_id in on_main and roadmap_id not in proposed and not entry[2].startswith(TAUCETI_BLOB))
+        sources = {roadmap_id: on_main[roadmap_id] if roadmap_id in stale else entry[2] for roadmap_id, entry in readmes.items()
+                   if roadmap_id in stale or roadmap_id in proposed or entry[2].startswith(TAUCETI_BLOB)}
+        atlas["meta"]["roadmapPages"] = link_roadmaps(atlas, rows, sources, stale)
         if variant is None:
             # The prerequisites a pull request's description states outrank its README's.
             atlas["meta"]["pullPrerequisites"] = follow_pull_requests(atlas, proposals["pulls"])
@@ -310,6 +382,7 @@ def build(output: Path, blueprints: Path | None = None, variant: str | None = No
         "PROGRESS": "src/progress.js",
         "LANDMARKS": "src/landmarks.js",
         "PRESENTATION": "src/presentation.js",
+        "LAZY": "src/lazy.js",
         "REFERENCES": "src/references.js",
         "LIVE": "src/live.js",
         "APP": "src/app.js",
@@ -328,7 +401,33 @@ def build(output: Path, blueprints: Path | None = None, variant: str | None = No
             raise ValueError("Missing template marker: " + marker)
         page = page.replace(marker, safe_script(read_text(path)))
     # The page quotes no source: a citation carries its locator, never a passage (PROTOCOL.md section 5).
-    payload = json.dumps(drop_source_excerpts(atlas), ensure_ascii=False, separators=(",", ":"))
+    # The page carries the core of the data. The roadmaps' READMEs are not in it: the page links to each roadmap
+    # instead (link_roadmaps), and what it drew from them comes ready-made (derive). The rest of the long text is
+    # in parts beside the page (scripts/lazy_data.py), which it reads when a panel needs them. --self-contained
+    # writes the parts into the page instead, as the page's own offline copy does.
+    published = drop_source_excerpts(atlas)
+    derived, bibliographies, words = derive(published)
+    published["roadmaps"] = [{key: value for key, value in roadmap.items() if key != "readme"} for roadmap in published["roadmaps"]]
+    published["roadmapBibliographies"] = bibliographies
+    published["readmeWords"] = words
+    core, parts = split_lazy(published)
+    for name, part in parts.items():
+        if re.search(r"/(?:Users|home)/[^/\s]+/", encode_part(part)):
+            raise ValueError("An absolute home directory remains in the public atlas: " + name)
+    parts_folder = output.parent / PARTS_FOLDER
+    if self_contained:
+        if parts_folder.exists():
+            shutil.rmtree(parts_folder)
+        core["lazy"]["parts"] = {name: [None, len(encode_part(part).encode("utf-8"))] for name, part in parts.items()}
+        marker = '<script id="atlas-data"'
+        if page.count(marker) != 1:
+            raise ValueError("The data element must appear once in the template.")
+        page = page.replace(marker, "".join(inline_part(name, parts[name]) for name in sorted(parts)) + marker)
+    else:
+        core["lazy"]["parts"] = write_parts(parts_folder, parts)
+    payload = json.dumps(core, ensure_ascii=False, separators=(",", ":"))
+    # Node's own text, not re-read here: an excerpt cut inside a character pair is not text Python can write.
+    payload = payload[:-1] + ',"derived":' + derived + "}"
     payload = payload.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
     if "/*__DATA__*/" not in page:
         raise ValueError("Missing data template marker.")
@@ -393,6 +492,9 @@ def build(output: Path, blueprints: Path | None = None, variant: str | None = No
                                 "reviewer": (packet.get("review") or {}).get("reviewer")} for stem, packet in context["blueprints"]],
         "sourceDocuments": sum(1 for _ in (ROOT / "content").rglob("*.md")),
         "htmlBytes": output.stat().st_size,
+        "dataParts": {"count": len(parts), "bytes": sum(size for _file, size in core["lazy"]["parts"].values()),
+                      "folder": None if self_contained else PARTS_FOLDER, "derivedBytes": len(derived.encode("utf-8"))},
+        "roadmapPages": atlas["meta"].get("roadmapPages", {}),
         "htmlSha256": hashlib.sha256(output.read_bytes()).hexdigest(),
         "networkDependencies": 0,
         "localProgressOverridesIncluded": False,
@@ -423,10 +525,12 @@ def main() -> None:
     parser.add_argument("--tauceti", action="store_true", help="build the Tau Ceti atlas (tauceti/index.html): only the roadmaps Tau Ceti's Progress page reports")
     parser.add_argument("--campaign", action="store_true", help="build the explorer's own planned map (campaign/index.html, not published) "
                                                                  "with its blueprints, papers and links")
+    parser.add_argument("--self-contained", action="store_true", help="write the page's long text into the page itself, as its offline copy "
+                                                                       "carries it, rather than into the atlas-data folder beside it")
     arguments = parser.parse_args()
     variant = "tauceti" if arguments.tauceti else "campaign" if arguments.campaign else None
     output = arguments.output if arguments.output != ROOT / "index.html" or variant is None else ROOT / variant / "index.html"
-    print(json.dumps(build(output.resolve(), arguments.blueprints, variant), indent=2))
+    print(json.dumps(build(output.resolve(), arguments.blueprints, variant, arguments.self_contained), indent=2))
 
 
 if __name__ == "__main__":

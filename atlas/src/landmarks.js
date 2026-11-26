@@ -258,9 +258,8 @@
       }
       chosen.sort((a, b) => a.start - b.start || (a.order || 0) - (b.order || 0));
       for (const candidate of chosen) {
-        const slug = candidate.label.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 42) || 'target';
         const record = {
-          id: stage.id + '::landmark:' + slug + '-' + hash(candidate.label),
+          id: identifier(stage, candidate.label),
           stageId: stage.id,
           roadmapId: stage.owner,
           title: candidate.label,
@@ -273,15 +272,51 @@
         // identifies. Locate the literal excerpt in the owning README instead.
         const line = sourceLine(stage.owner, candidate.text);
         if (line !== undefined) record.sourceLine = line;
+        // Where the passage lies in the layer's description, for scripts/derive.js; not part of the record.
+        Object.defineProperty(record, 'start', { value: candidate.start });
+        Object.defineProperty(record, 'end', { value: candidate.end });
         output.push(record);
       }
     }
     return output;
   }
 
+  function identifier(stage, label) {
+    const slug = label.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 42) || 'target';
+    return stage.id + '::landmark:' + slug + '-' + hash(label);
+  }
+
+  // The landmarks `build` finds, from the rows scripts/derive.js made of them at build time: the page draws
+  // them before it has the layers' descriptions, and without the READMEs. A row is [stage index, title, kind,
+  // start, end, README line, shown title, excerpt, README lines of its citations]; the passage itself is read
+  // from the layer's description once the page has it.
+  function restore(data, rows) {
+    return rows.map(([at, title, kind, start, end, line, shown, excerpt, cited]) => {
+      const stage = data.stages[at];
+      const passage = () => String(stage.description || '').slice(start, end);
+      const record = {
+        id: identifier(stage, title),
+        stageId: stage.id,
+        roadmapId: stage.owner,
+        title,
+        kind,
+        get description() { return passage(); },
+        sourcePath: stage.sourcePath || '',
+        get sourceExcerpt() { return passage(); }
+      };
+      if (line !== null && line !== undefined) record.sourceLine = line;
+      // The title and the excerpt the map shows (src/presentation.js, src/app.js), which were read from the passage.
+      Object.defineProperty(record, 'shownTitle', { value: shown === null || shown === undefined ? title : shown });
+      Object.defineProperty(record, 'excerpt', { value: excerpt });
+      // For src/references.js.
+      Object.defineProperty(record, 'referenceLines', { value: cited || [] });
+      return record;
+    });
+  }
+
   function passages(stage, children) {
     const { original, ranges } = scope(stage, children);
     return blocks(original, ranges).map(block => block.text);
   }
-  window.TauLandmarks = Object.freeze({ build, passages });
+  window.TauLandmarks = Object.freeze({ build, restore, passages });
 })();

@@ -3,6 +3,11 @@
 
   // This indexes citations already present in the embedded sources. The scopes
   // describe where a citation was written, not which theorem it proves.
+  //
+  // The page no longer carries the READMEs. What this read from them is made at build time by this same code
+  // (scripts/derive.js) and comes with the page as data.derived.references: the README line of each citation
+  // of a planet or a layer, whose text the page still reads from the layer's description; and each roadmap's
+  // own bibliography whole, as data.roadmapBibliographies.
   const bibliographyHeading = /^(?:references?|sources|bibliography|further reading|reading list|primary (?:references?|sources?))\b/i;
   const boilerplate = /source register and machine-readable references|campaign primary source registry|source versions and download checks|bibliographic citation does not claim|source-to-Lean|source[- ](?:decomposition|concordance)|preserved source-unit readiness|source theorem numbers refer to those versions|needs_source_decomposition|catalogue or abstract check|before marking this area implemented|every exported object needs|generated work queue/i;
   const emptyRoute = /^(?:stage contracts?\b|source-specific downstream estimates\b|source register\b|select(?:ion of)? (?:the )?(?:exact |appropriate |original |primary )?sources?\b|sources? (?:pending|to be selected|not yet selected)|existing (?:owner|interface|contract|inventory)s?\b|local (?:source )?inventor(?:y|ies)\b)/i;
@@ -67,6 +72,14 @@
     const stages = new Map((data.stages || []).map(stage => [stage.id, stage]));
     const children = new Map(), stagesByRoadmap = new Map();
     const layerCache = new Map(), roadmapCache = new Map(), sourceOffsets = new Map();
+    const derived = data.derived && data.derived.references || null;
+    const stageIndex = new Map();
+    if (derived) (data.stages || []).forEach((stage, at) => stageIndex.set(stage.id, at));
+    // The README lines found at build time, in place of those a search of the README would give here.
+    function located(records, lines) {
+      if (lines) records.forEach((entry, at) => { entry.sourceLine = lines[at] === null || lines[at] === undefined ? undefined : lines[at]; });
+      return records;
+    }
     for (const stage of stages.values()) {
       if (!stagesByRoadmap.has(stage.owner)) stagesByRoadmap.set(stage.owner, []);
       stagesByRoadmap.get(stage.owner).push(stage);
@@ -108,13 +121,15 @@
       // The shared scope routine removes nested child passages and clips legacy
       // sections to their own named anchor rather than inheriting sibling citations.
       const passages = window.TauLandmarks.passages(stage, children.get(stage.id));
-      const result = passages.flatMap(text => extract(text, roadmap, stage.sourceLine));
+      const result = located(passages.flatMap(text => extract(text, roadmap, stage.sourceLine)), derived && (derived.layers[stageIndex.get(stage.id)] || []));
       layerCache.set(stage.id, result);
       return result;
     }
 
     function roadmapReferences(roadmap) {
       if (roadmapCache.has(roadmap.id)) return roadmapCache.get(roadmap.id);
+      // Its bibliography as the build found it in the README, which comes with the roadmap's part (src/lazy.js).
+      if (derived) return ((data.roadmapBibliographies || {})[roadmap.id] || []).map(([text, line]) => ({ text, sourcePath: roadmap.sourcePath || '', sourceLine: line === null ? undefined : line }));
       const owned = stagesByRoadmap.get(roadmap.id) || [];
       const occupied = owned.map(stage => [stage.contextStartLine || stage.sourceLine, stage.contextEndLine || stage.sourceLine]);
       let bibliography = false, depth = 0;
@@ -186,12 +201,17 @@
         return output;
       }
       return {
-        direct: unique(extract(item.sourceExcerpt || item.description, roadmap, item.sourceLine)),
+        direct: unique(directReferences(item, roadmap)),
         layer: unique(layerReferences(stage, roadmap)),
         roadmap: unique(roadmapReferences(roadmap))
       };
     }
-    return Object.freeze({ forLandmark });
+    function directReferences(item, roadmap) {
+      return located(extract(item.sourceExcerpt || item.description, roadmap, item.sourceLine), derived && (item.referenceLines || []));
+    }
+    // The three lists before they are merged, for scripts/derive.js.
+    const found = Object.freeze({ direct: directReferences, layer: layerReferences, roadmap: roadmapReferences });
+    return Object.freeze({ forLandmark, found });
   }
 
   window.TauReferences = Object.freeze({ create });

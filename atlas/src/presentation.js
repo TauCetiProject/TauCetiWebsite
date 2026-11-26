@@ -28,6 +28,8 @@
     }
     function landmarkTitle(item) {
       if (data.landmarkLabels?.[item.id]) return data.landmarkLabels[item.id];
+      // A landmark restored from the build's rows carries the title worked out there (TauLandmarks.restore).
+      if (item.shownTitle !== undefined) return item.shownTitle;
       return shortLandmarkTitle(item, stageTitle(item.stageId));
     }
     return Object.freeze({ stageTitle, stageSummary, isMathematicalStage, landmarkTitle });
@@ -101,5 +103,7 @@
     return item.description.replace(/^(?:[-*+]\s+|\d+[.)]\s+)?\*\*(?:construct(?:ion)?(?: and export)?|acceptance(?: examples)?|target|goal|output)\s*[.:]?\*\*\s*[:.]?\s*/i, '')
       .replace(/\bMatch the existing Dirichlet-series carrier and normalization\.\s*/g, '');
   }
-  window.TauPresentation = Object.freeze({ create, landmarkDescription });
+  // The opening of a passage as plain text, for a planet's caption on the map.
+  function plainExcerpt(text){return String(text||'').replace(/\$\$?([^$]+)\$\$?/g,(m,tex)=>tex.replace(/\\[a-zA-Z]+\s*/g,w=>({'\\mathbb ':'','\\operatorname ':'','\\mathrm ':'','\\to ':'→ ','\\times ':'× ','\\cdot ':'· ','\\otimes ':'⊗ ','\\oplus ':'⊕ ','\\infty ':'∞ ','\\le ':'≤ ','\\ge ':'≥ ','\\ne ':'≠ '}[w]??w.replace(/^\\/,''))).replace(/[{}]/g,'')).replace(/[*_`>#]+/g,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/\s+/g,' ').trim().slice(0,220);}
+  window.TauPresentation = Object.freeze({ create, landmarkDescription, plainExcerpt });
 })();

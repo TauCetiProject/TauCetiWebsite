@@ -201,10 +201,10 @@ def reference_sources_are_exact(page, planet_id):
  return page.evaluate(r"""id => {
   const item=TauExplorer.landmarks.find(x=>x.id===id),entries=Object.values(TauExplorer.references.forLandmark(item)).flat();
   return entries.length>0&&entries.every(entry=>{
+   // The page carries no README: the build found each citation's line in it (scripts/derive.js, which checks them
+   // against the whole text), and the panel links to that line of the README on GitHub.
    const doc=TauExplorer.data.roadmaps.find(x=>x.sourcePath===entry.sourcePath);
-   if(!doc||!Number.isInteger(entry.sourceLine)||entry.sourceLine<1)return false;
-   const lines=doc.readme.split('\n'),length=entry.text.split('\n').length;
-   return lines.slice(entry.sourceLine-1,entry.sourceLine-1+length).join('\n').includes(entry.text);
+   return !!doc&&!('readme' in doc)&&Number.isInteger(entry.sourceLine)&&entry.sourceLine>=1&&/^https:\/\/github\.com\//.test(doc.readmeSource||'');
   });
  }""",planet_id)
 def run_reference_checks(page,browser):
@@ -236,13 +236,10 @@ def run_reference_checks(page,browser):
  record('Reference links do not expose local reference PDFs',reading.evaluate(r"""e => Array.from(e.querySelectorAll('a')).every(a=>{const href=a.getAttribute('href')||'';return !/^file:/i.test(href)&&(!/\.pdf(?:[?#]|$)/i.test(href)||/^https?:\/\//i.test(href))})"""))
  reading.locator('.reference-source').first.scroll_into_view_if_needed()
  page.screenshot(path=str(ROOT/'preview-planet-references.png'),animations='disabled')
- reading.locator('.reference-source').first.click()
- # The reader shows the owning roadmap's document, so take its title from the data:
- # an accepted restructuring may retitle a roadmap (here, to a Part II) without
- # changing what a reference opens.
- owner_title=page.evaluate("id => (TauExplorer.data.roadmaps.find(r => r.id === id) || {}).title",owner)
- record('A planet reference opens its owning roadmap source',page.locator('#reader[open]').is_visible() and page.locator('#reader-title').inner_text()==owner_title and any(plain(passage)[:40] in plain(page.locator('#reader-body').text_content()) for passage in recorded['passages']))
- page.locator('#close-reader').click()
+ cited=reading.locator('a.reference-source').first.get_attribute('href') or ''
+ # A citation is shown where it was written: at its line of the owning roadmap's README on GitHub.
+ owner_source=page.evaluate("id => (TauExplorer.data.roadmaps.find(r => r.id === id) || {}).readmeSource",owner)
+ record('A planet reference opens its owning roadmap source',bool(owner_source) and re.fullmatch(re.escape(owner_source)+r'\?plain=1#L\d+',cited) is not None and not page.locator('#reader[open]').count())
 
  # An explicit paper in a TauCeti target belongs to that topic, not to every
  # target in the roadmap. Its public paper link and local source stay separate.
@@ -251,9 +248,7 @@ def run_reference_checks(page,browser):
  open_planet(page,topic)
  direct=page.locator('.planet-references [data-reference-scope="direct"]')
  record('A TauCeti mathematical target exposes its explicit topic reference',direct.locator('h4').inner_text()=='For this topic' and 'Milnor conjecture' in direct.inner_text() and direct.locator('a[href="https://arxiv.org/abs/1011.5265"]').count()==1 and reference_sources_are_exact(page,topic))
- direct.locator('.reference-source').first.click()
- record('TauCeti topic citation opens its preserved roadmap passage',page.locator('#reader[open]').is_visible() and 'Milnor conjecture' in page.locator('#reader-body').inner_text() and 'Combinatorial' in page.locator('#reader-title').inner_text())
- page.locator('#close-reader').click()
+ record('TauCeti topic citation opens its preserved roadmap passage',re.search(r'/TauCetiRoadmap/CombinatorialHeegaardFloer/README\.md\?plain=1#L\d+$',direct.locator('a.reference-source').first.get_attribute('href') or '') is not None)
 
  # Promotions take over the layers of pinned examples (AInfCohomology:AI.0 and AbelianSchemesAndArithmeticModuli:A1
  # in the wave waiting from 2026-10-09), so these two are chosen from what is drawn, the pinned ones first.
@@ -277,7 +272,7 @@ def run_reference_checks(page,browser):
   if url.startswith('file:'):
    mp.route('http://**/*',abort_offline)
    mp.route('https://**/*',abort_offline)
-  mp.goto(url,wait_until='load');mp.wait_for_function('!!window.TauExplorer')
+  mp.goto(url,wait_until='load');mp.wait_for_function('!!window.TauExplorer');mp.evaluate('() => TauExplorer.lazy.all()')
   phone_choice=pick_reading_planet(mp)
   record('The phone atlas draws the same kind of planet',bool(phone_choice))
   phone_planet=phone_choice['id']
@@ -295,11 +290,8 @@ def run_reference_checks(page,browser):
   record('Phone users can scroll to planet references with touch',reference_button_in_view() and panel.evaluate('(e)=>e.scrollTop>0') and mp.evaluate('navigator.maxTouchPoints>0'))
   record('Phone bibliography remains readable without covering navigation',mp.locator('.planet-references .reference-text').first.evaluate('(e)=>parseFloat(getComputedStyle(e).fontSize)>=12') and mp.locator('.cosmic-back').is_visible() and mp.evaluate('document.documentElement.scrollWidth<=innerWidth+1'))
   mp.screenshot(path=str(ROOT/'preview-phone-planet-references.png'),animations='disabled')
-  button.tap()
-  phone_owner_title=mp.evaluate("id => (TauExplorer.data.roadmaps.find(r => r.id === id) || {}).title",phone_choice['roadmapId'])
-  phone_reading=recorded_reading(mp,phone_planet)
-  record('Phone tap opens the embedded citation source',mp.locator('#reader[open]').is_visible() and mp.locator('#reader-title').inner_text()==phone_owner_title and any(plain(passage)[:40] in plain(mp.locator('#reader-body').text_content()) for passage in phone_reading['passages']))
-  mp.locator('#close-reader').tap()
+  phone_source=mp.evaluate("id => (TauExplorer.data.roadmaps.find(r => r.id === id) || {}).readmeSource",phone_choice['roadmapId'])
+  record('Phone tap opens the embedded citation source',bool(phone_source) and (button.get_attribute('href') or '').startswith(phone_source) and button.get_attribute('target')=='_blank')
   record('Closing a citation reader preserves the selected planet',mp.evaluate('TauExplorer.getState().selected')==phone_planet and (not phone_choice['formula'] or mp.locator('.landmark-description math').count()>0))
   mobile.close()
 def write_report(scope):
@@ -670,15 +662,9 @@ def check_proposals(page):
   return document.getElementById('selection-kind').textContent==='Proposed roadmap'
    && [...document.querySelectorAll('#inspector-content .section-label')].some(h=>h.textContent==='Pull request')
    && document.getElementById('inspector-content').textContent.includes('#'+r.pull.number) && links.includes(r.pull.url) && links.includes(r.sourcePath); }""",proposed))
- # The page carries a proposed roadmap's layers, not its README, which it reads from the pull request's branch: offline,
- # the reader says so and links to it.
- page.evaluate("id => TauExplorer.openReader(id)",proposed)
- try:
-  page.wait_for_function("() => !!document.querySelector('#reader-body a[href^=\"https://github.com/\"]')",timeout=10000);read=True
- except Exception:
-  read=False
- record('A proposed roadmap\'s README is read from its branch, and offline the reader links to it',read and page.locator('#reader[open]').is_visible())
- page.locator('#close-reader').click()
+ # The page carries a proposed roadmap's layers, not its README: it links to the README on its pull request's branch.
+ record('A proposed roadmap\'s README is read from its branch, and offline the reader links to it',page.evaluate("""id => { const r=TauExplorer.data.roadmaps.find(x=>x.id===id),a=document.querySelector('#inspector-content a[data-roadmap-page]');
+  return !!a && a.href===r.page.href && /^https:\\/\\/github\\.com\\//.test(a.href) && a.target==='_blank' && !document.querySelector('#reader[open]'); }""",proposed))
  page.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null,origin:'proposed'})");page.wait_for_timeout(700)
  record('The pull requests collection shows only the proposed roadmaps',page.evaluate("TauExplorer.graph.debugState().counts.constellations===TauExplorer.data.proposals.roadmaps.length"))
  page.evaluate("TauExplorer.navigate({view:'all',id:null,layer:null,selected:null,origin:'all'})");page.wait_for_timeout(500)
@@ -699,7 +685,7 @@ def run_overview_checks(page,browser):
  if url.startswith('file:'):
   mp.route('http://**/*',abort_offline)
   mp.route('https://**/*',abort_offline)
- mp.goto(url,wait_until='load');mp.wait_for_function('!!window.TauExplorer')
+ mp.goto(url,wait_until='load');mp.wait_for_function('!!window.TauExplorer');mp.evaluate('() => TauExplorer.lazy.all()')
  for scope,width,height in [('Phone',390,844),('Narrow phone',375,812),('Landscape phone',844,390)]:
   mp.set_viewport_size({'width':width,'height':height});mp.wait_for_timeout(500);fit_all(mp,touch=True)
   mp.screenshot(path=str(ROOT/('preview-'+scope.lower().replace(' ','-')+'-universe.png')),animations='disabled')
@@ -712,7 +698,7 @@ with sync_playwright() as p:
  if url.startswith('file:'):
   page.route('http://**/*',abort_offline)
   page.route('https://**/*',abort_offline)
- page.goto(url,wait_until='load');page.wait_for_function('!!window.TauExplorer',timeout=15000)
+ page.goto(url,wait_until='load');page.wait_for_function('!!window.TauExplorer',timeout=15000);page.evaluate('() => TauExplorer.lazy.all()')
  # The published pages (Tau Ceti's roadmaps and those proposed) draw no planets: a layer's definitions and results are
  # listed in its panel (src/app.js, PLANETS). The campaign map draws them.
  PLANETS=page.evaluate("!['atlas','tauceti'].includes(TauExplorer.data.variant)")
@@ -761,23 +747,14 @@ with sync_playwright() as p:
   page.evaluate("TauExplorer.navigate({view:'roadmap',id:'ArithmeticKTheory',layer:null,selected:null,origin:'all',activity:'all',unmapped:true})");page.wait_for_timeout(600)
   record('Administrative readiness checkpoint is not a star',page.evaluate("!TauExplorer.isMathematicalStage('ArithmeticKTheory:KU-finitegeneration') && !TauExplorer.getUniverse().byId.has('ArithmeticKTheory:KU-finitegeneration') && TauExplorer.getUniverse().stars.every(s=>TauExplorer.isMathematicalStage(s.id))"))
   record('Hidden administrative layer retains its raw source and progress',page.evaluate("() => {const id='ArithmeticKTheory:KU-finitegeneration',raw=TauExplorer.data.stages.find(s=>s.id===id);return raw.title==='Arithmetic K-theory finite generation' && raw.description.includes('readiness checkpoints') && TauExplorer.progress.stage(id).status!==undefined}"))
-  # 'readme' explicitly: a promoted blueprint is the default reading for a roadmap that has
-  # one, and the roadmap's own document still has to be reachable, because that is where the
-  # sections the graph hides are written.
-  page.evaluate("TauExplorer.openReader('ArithmeticKTheory','readme')")
-  record('Full source document preserves hidden administrative instructions','readiness checkpoints' in page.locator('#reader-body').text_content())
   # Only when the atlas is served: a blueprint reading is fetched from the published site, and
   # the offline pass asserts that nothing reaches for the network.
   if not url.startswith('file:'):
    record('A blueprint reading offers its way back to the source document',page.evaluate("() => {const r=TauExplorer.data.roadmaps.find(x=>x.blueprint&&x.blueprint.documents&&x.blueprint.documents.length);if(!r)return true;TauExplorer.openReader(r.id);return true;}"))
    page.evaluate("() => {const d=document.getElementById('reader');if(d&&d.open)d.close();}")
-  page.locator('#close-reader').click()
  # A retired roadmap has left the atlas; an old link to it opens the whole atlas.
  page.evaluate("TauExplorer.navigate({view:'roadmap',id:'FoundationsAndLibraryIntegration',layer:null,selected:null})");page.wait_for_timeout(400)
  record('A retired roadmap is gone and its old links open the atlas',page.evaluate("TauExplorer.getState().view==='all' && !TauExplorer.data.roadmaps.some(r=>r.id==='FoundationsAndLibraryIntegration') && TauExplorer.data.meta.retiredRoadmaps.includes('FoundationsAndLibraryIntegration')"))
- if CAMPAIGN:
-  page.evaluate("TauExplorer.openReader('ArithmeticKTheory')")
-  page.locator('#close-reader').click()
  pinned_group='tauceti:TauCetiRoadmap/ReductiveGroups#layer-9-pinned-chevalleydemazure-group-schemes-over-ℤ'
  page.evaluate("TauExplorer.openItem('tauceti:TauCetiRoadmap/ReductiveGroups')");page.wait_for_timeout(600)
  record('Mathematical pinned group schemes remain visible',page.evaluate("id => TauExplorer.isMathematicalStage(id) && TauExplorer.getUniverse().byId.has(id) && TauExplorer.getUniverse().byId.get(id).label===TauExplorer.stageTitle(id)",pinned_group))
@@ -804,12 +781,12 @@ with sync_playwright() as p:
  }""",named['id']))
  record('Opening a named planet renders its preserved source formula',page.locator('.landmark-description math').count()>0 and page.locator('.landmark-description math').first.evaluate('(e)=>e.getBoundingClientRect().width>30 && e.getBoundingClientRect().height>10') and page.locator('.landmark-description .katex-error').count()==0 and page.evaluate(r"""id => {
   const item=TauExplorer.landmarks.find(x=>x.id===id),roadmap=TauExplorer.data.roadmaps.find(x=>x.id===item.roadmapId);
-  return /\\|\$|\^|_\{/.test(item.title)&&item.description===item.sourceExcerpt&&roadmap.readme.includes(item.sourceExcerpt)&&roadmap.readme.split('\n').slice(item.sourceLine-1).join('\n').startsWith(item.sourceExcerpt);
+  return /\\|\$|\^|_\{/.test(item.title)&&item.description===item.sourceExcerpt&&!('readme' in roadmap)&&Number.isInteger(item.sourceLine)&&item.sourceLine>=1;
  }""",named['id']))
  page.screenshot(path=str(ROOT/'preview-formula-planet.png'),animations='disabled')
  # A layer with no recorded status: the example roadmap's if it has one, else the first such layer with planets of a
  # roadmap whose README the page carries (on the atlas a proposed roadmap's is read from GitHub, and this pass is offline).
- S=page.evaluate("() => { const u=TauExplorer.getUniverse(),lit=new Set(TauExplorer.landmarks.map(l=>l.stageId)),blank=x=>(x.planetIds.length||lit.has(x.id))&&TauExplorer.progress.stage(x.id).status==='unknown',carried=x=>!!(TauExplorer.data.roadmaps.find(r=>r.id===x.constellationId)||{}).readme; const star=u.stars.find(x=>x.constellationId==="+json.dumps(ROADMAP)+"&&blank(x))||u.stars.filter(x=>blank(x)&&carried(x)).sort((a,b)=>a.id<b.id?-1:1)[0]; window.__blankStage=star?star.id:null; return window.__blankStage; }")
+ S=page.evaluate("() => { const u=TauExplorer.getUniverse(),lit=new Set(TauExplorer.landmarks.map(l=>l.stageId)),blank=x=>(x.planetIds.length||lit.has(x.id))&&TauExplorer.progress.stage(x.id).status==='unknown',carried=x=>(TauExplorer.data.roadmaps.find(r=>r.id===x.constellationId)||{}).origin!=='proposed'; const star=u.stars.find(x=>x.constellationId==="+json.dumps(ROADMAP)+"&&blank(x))||u.stars.filter(x=>blank(x)&&carried(x)).sort((a,b)=>a.id<b.id?-1:1)[0]; window.__blankStage=star?star.id:null; return window.__blankStage; }")
  record('A layer with no recorded status is on the map',bool(S))
  page.evaluate("TauExplorer.openStage(window.__blankStage)");page.wait_for_timeout(600)
  record('Central layer star exposes progress controls',page.get_by_label('Layer status',exact=True).is_visible())
@@ -817,7 +794,7 @@ with sync_playwright() as p:
  page.get_by_label('Layer status',exact=True).select_option('complete');page.get_by_label('Progress note',exact=True).fill('Browser test evidence')
  page.get_by_role('button',name='Save status',exact=True).click();page.wait_for_timeout(400)
  record('Local update persists and makes the star green',page.evaluate("TauExplorer.progress.stage(window.__blankStage).manual && TauExplorer.progress.stage(window.__blankStage).status==='complete'") and page.locator('#inspector .status-chip').inner_text().endswith('Complete') and page.locator('[data-node-id="'+S+'"]').get_attribute('data-progress')=='100')
- page.reload(wait_until='load');page.wait_for_function('!!window.TauExplorer');page.wait_for_timeout(500)
+ page.reload(wait_until='load');page.wait_for_function('!!window.TauExplorer');page.evaluate('() => TauExplorer.lazy.all()');page.wait_for_timeout(500)
  page.evaluate("id => { window.__blankStage=id; }",S)
  record('Progress survives reload',page.evaluate("TauExplorer.progress.stage(window.__blankStage).status==='complete'"))
  page.screenshot(path=str(ROOT/'preview-stage.png'),animations='disabled')
@@ -825,9 +802,8 @@ with sync_playwright() as p:
  record('Malformed import is atomic',page.evaluate("""() => {const a=JSON.stringify(TauExplorer.progress.export());try{TauExplorer.progress.import({version:1,stages:{bad:{status:'complete'}}});return false}catch{}return a===JSON.stringify(TauExplorer.progress.export())}"""))
  page.evaluate("TauExplorer.progress.resetStage(window.__blankStage)");page.wait_for_timeout(300)
  record('Resetting local progress restores the blank indicator',page.evaluate("TauExplorer.progress.stage(window.__blankStage).status==='unknown' && TauExplorer.graph.debugState().stars.find(n=>n.id===window.__blankStage).progress===null") and page.locator('#inspector .status-chip').count()==0)
- page.get_by_role('button',name='Read full roadmap',exact=True).click()
- record('Full document readable offline',page.locator('#reader[open]').is_visible() and len(page.locator('#reader-body').inner_text())>3000)
- page.locator('#close-reader').click()
+ # The README is not in the atlas: the panel links to the roadmap's page, and the layer's own text is in the panel.
+ record('Full document readable offline',page.evaluate("() => { const a=document.querySelector('#inspector-content a[data-roadmap-page]'),r=a&&TauExplorer.data.roadmaps.find(x=>x.id===a.dataset.roadmapPage); return !!r && a.href===r.page.href && a.textContent.startsWith('Read full roadmap') && document.querySelector('.source-stage-description').textContent.length>100; }") and not page.locator('#reader[open]').count())
  page.locator('#search').fill('Perron')
  record('Search reaches mathematical roadmap text',page.locator('.search-hit').count()>0)
  # Words match in any order, and hyphens, dashes and accents do not matter.
@@ -874,29 +850,18 @@ with sync_playwright() as p:
  page.evaluate("TauExplorer.navigate({view:'roadmap',id:"+json.dumps(ROADMAP)+",layer:null,selected:"+json.dumps(ROADMAP)+",tab:'overview'})");page.wait_for_timeout(500)
  page.locator('.pin-button').click()
  record('Roadmap can be pinned',page.locator('#pinned-list .pin-item').count()==1)
- page.reload(wait_until='load');page.wait_for_function('!!window.TauExplorer');page.wait_for_timeout(500)
+ page.reload(wait_until='load');page.wait_for_function('!!window.TauExplorer');page.evaluate('() => TauExplorer.lazy.all()');page.wait_for_timeout(500)
  record('Pinned roadmap persists',page.locator('.pin-button').get_attribute('aria-pressed')=='true')
  page.locator('#activity-filter').select_option('pinned');page.wait_for_timeout(400)
  record('Pinned filter returns saved roadmap',page.evaluate("TauExplorer.getGraph().nodes.length===1 && TauExplorer.getGraph().nodes[0].id==="+json.dumps(ROADMAP)+""))
  page.locator('#activity-filter').select_option('all');page.wait_for_timeout(400)
- page.evaluate("TauExplorer.openReader('tauceti:TauCetiRoadmap/ModularForms')")
- internal=page.locator('#reader-body [data-doc-link]').all();linked=False
- for link in internal:
-  raw=link.get_attribute('data-doc-link')
-  if raw and 'README.md' in raw and not raw.startswith(('http','file','#')):
-   before=page.locator('#reader-title').inner_text();link.click()
-   if page.locator('#reader-title').inner_text()!=before:linked=True;break
- record('Embedded roadmap document links resolve',linked)
- page.locator('#close-reader').click()
- if CAMPAIGN and page.evaluate('(TauExplorer.data.documents||[]).length'):
-  page.evaluate("TauExplorer.openReader("+json.dumps(ROADMAP)+")")
-  page.locator('#reader-body [data-doc-link]').filter(has_text='campaign execution protocol').click()
-  record('Campaign execution guide is embedded and linked','execution' in page.locator('#reader-title').inner_text().lower())
-  page.locator('#close-reader').click()
+ # A link in a layer's text to another roadmap's README goes to that roadmap's page; the reader is for the documents
+ # the atlas carries.
+ record('Embedded roadmap document links resolve',page.evaluate("() => TauExplorer.data.roadmaps.every(r => !('readme' in r) && r.page && /^https:\\/\\//.test(r.page.href))"))
  page.locator('#progress-button').click()
- with page.expect_download() as dl:page.locator('#download-offline').click()
+ with page.expect_download(timeout=120000) as dl:page.locator('#download-offline').click()
  artifact=ROOT/'verified-offline.html';dl.value.save_as(str(artifact));page.locator('#close-progress').click()
- offline=browser.new_context();op=offline.new_page();op.goto(artifact.as_uri());op.wait_for_function('!!window.TauExplorer')
+ offline=browser.new_context();op=offline.new_page();op.goto(artifact.as_uri());op.wait_for_function('!!window.TauExplorer');op.evaluate('() => TauExplorer.lazy.all()')
  record('Offline universe loads independently',op.evaluate("TauExplorer.landmarks.length>2500 && TauExplorer.graph.debugState().layout==='universe' && TauExplorer.data.roadmaps.length===%d"%BUILD['roadmaps']) and op.locator('#pinned-list .pin-item').count()==0)
  offline.close()
  if not desktop_only:
@@ -905,7 +870,7 @@ with sync_playwright() as p:
   if url.startswith('file:'):
    mp.route('http://**/*',abort_offline)
    mp.route('https://**/*',abort_offline)
-  mp.goto(url,wait_until='load');mp.wait_for_function('!!window.TauExplorer');mp.wait_for_timeout(500)
+  mp.goto(url,wait_until='load');mp.wait_for_function('!!window.TauExplorer');mp.evaluate('() => TauExplorer.lazy.all()');mp.wait_for_timeout(500)
   touch=mobile.new_cdp_session(mp)
   record('Phone uses touch input at a real mobile viewport',mp.evaluate('navigator.maxTouchPoints>0 && innerWidth===390'))
   check_overview(mp,'Phone',touch=True)
@@ -995,7 +960,7 @@ with sync_playwright() as p:
    safari=p.webkit.launch(headless=True)
    sc=safari.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
    sp=sc.new_page();sp.on('pageerror',lambda e:errors.append('webkit: '+str(e)))
-   sp.goto(url,wait_until='load');sp.wait_for_function('!!window.TauExplorer');sp.wait_for_timeout(600)
+   sp.goto(url,wait_until='load');sp.wait_for_function('!!window.TauExplorer');sp.evaluate('() => TauExplorer.lazy.all()');sp.wait_for_timeout(600)
    center_on(sp,ROADMAP)
    sp.locator('[data-node-id='+json.dumps(ROADMAP)+'] .tau-hit').tap();sp.wait_for_function("TauExplorer.getState().view==='roadmap'");sp.wait_for_timeout(600)
    sp.locator('[data-node-id='+json.dumps(STAR)+'] .tau-hit').tap();sp.wait_for_function("TauExplorer.getState().layer==="+json.dumps(STAR)+"");sp.wait_for_timeout(600)

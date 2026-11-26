@@ -6,7 +6,13 @@ An interactive atlas of mathematical roadmaps: one universe with Mathlib at its 
 
 Since 21 October 2026 the atlas shows Tau Ceti's own roadmaps, with each layer's state from the website's [Roadmaps page](https://taucetiproject.github.io/TauCetiWebsite/structure.html), and every roadmap proposed in an open pull request to [TauCetiRoadmap](https://github.com/TauCetiProject/TauCetiRoadmap), whoever opened it, in place of the campaign's own planned roadmaps. A proposed roadmap's layers come from the README on its pull request's branch; they count as not started, and its panel links to the pull request. [The Tau Ceti atlas](https://cbirkbeck.github.io/tauceti-explorer/tauceti/) shows Tau Ceti's roadmaps alone. Both are rebuilt four times a day by `.github/workflows/tauceti-progress.yml`, which publishes only when the pages pass their checks; a run that fails opens the issue "Atlas: the scheduled update failed", and the next run that succeeds closes it.
 
-The atlas also runs entirely offline. Download `index.html` and open it in a browser; its roadmap text, data, graph library, and interface are embedded in that single file. No installation, account, or local server is required.
+The atlas also runs offline. Use **Progress → Download offline atlas** and open the file in a browser: its data, graph library and interface are in that single file. No installation, account, or local server is required. (Since 26 November 2026 the page itself, `index.html`, carries only what the map draws and reads the rest from the `atlas-data/` folder beside it, so a saved `index.html` needs that folder; the offline download does not.)
+
+**What the page loads (since 26 November 2026).** The page used to be one 190 MB file. Now:
+- **No README text.** The roadmaps' READMEs are not in the atlas. Where the atlas opened one, it links to the roadmap's page on the website (`roadmap.html?id=…`, for a roadmap the Progress page has a row for) or, failing that, to the README on GitHub as the build read it (a proposed roadmap's, on its pull request's branch). A citation's "View citation in roadmap" opens its line of the README on GitHub; for a roadmap whose copy in the snapshot is older than the README on main, it opens the README on main without a line, since the snapshot's line numbers are not that file's.
+- **What was drawn from the READMEs comes ready-made.** The planets, their names and excerpts, the README line of every citation and each roadmap's bibliography are worked out at build time by the page's own code (`scripts/derive.js`, run by `scripts/build.py` with Node) and carried in the page (`derived` in its data). `derive.js` reads its output back as the page will and stops the build unless every planet and every list of citations is what the page's code makes of the whole text.
+- **The rest of the long text is read on demand** from `atlas-data/` (`scripts/lazy_data.py`, `src/lazy.js`): the layers' descriptions (in 32 parts, by roadmap), the links' evidence, the statements of Mathlib's items, and the READMEs' words for the search. A panel reads the part it needs when it opens; after the first frame the page reads the rest in the background, unless the browser asks to save data. Each part's file name carries the hash of its content, so a part that did not change stays in the reader's cache from one build to the next.
+- **Search.** Roadmaps are found by title, identifier, summary and, once read, the words of their README: its runs of letters and digits with how often each occurs, which finds and orders a query of plain words exactly as the whole text did. A query word with punctuation in it (`K_0`, `GL(2)`) no longer matches inside a README. Layers are found by title, summary and, once read, their description. Until the text is read the results' heading says so.
 
 ## Explore
 
@@ -16,7 +22,7 @@ The atlas also runs entirely offline. Download `index.html` and open it in a bro
 - Tap or click a roadmap, star or planet to make the same journey directly. Zoom out or use the back control to return to the previous level.
 - Formula planets have short plain-text names; clicking them opens the typeset definition, theorem target or construction from the source. The details also list citations from the topic or layer and broader roadmap reading, with links back to the embedded source. Progress belongs to its layer star; planets do not carry independent completion claims.
 - The details panel explains the mathematics, tracked progress, prerequisites and consumers. The Links tab exposes the actual stage pairs behind dependencies.
-- Search for a subject, roadmap, or individual stage. Open the full roadmap to read its outline and source text.
+- Search for a subject, roadmap, or individual stage. A roadmap's panel links to its page on the website, where its report, layers and README are.
 - Drag to pan and use Fit to recover the current scene. Export the current graph as SVG.
 - Open **Mission status** for a progress breakdown by subject. Filter the collection by layer activity, and pin roadmaps for your next visit.
 - Use **Browse** on a phone, or **⌘/Ctrl K** on a keyboard to search. Mobile details share the screen with the chart; pinch, tap and back controls remain available. View links preserve the current roadmap and planetary system.
@@ -93,19 +99,19 @@ Roadmap and subject percentages count **completed terminal targets divided by al
 
 Open a stage to change its status and add an evidence note. A parent-stage update includes its descendants. Your changes are local overrides, stored in the current browser when storage is available; they do not edit the published data or upstream repositories. “Use recorded status” removes the corresponding local override and its descendants.
 
-Use **Progress → Download offline atlas** for a standalone HTML copy.
+Use **Progress → Download offline atlas** for a standalone HTML copy: the page with every part of `atlas-data/` written into it. Its links to the roadmaps' pages need a connection; everything else works without one.
 
 Use **Progress → Export progress** to save a JSON backup. Import restores a validated local snapshot, replacing the current local overrides. Export before changing browsers or opening the atlas from a different location: browser storage is tied to its origin and may be unavailable or cleared. If storage is blocked, updates remain available during the current page session and can still be exported.
 
 ## Rebuild
 
-Requires Python 3.9 or later, using only its standard library:
+Requires Python 3.9 or later, using only its standard library, and Node 18 or later (any `node` on the path, or the one `ATLAS_NODE` names), which runs the page's own code over the READMEs (`scripts/derive.js`):
 
 ```sh
 python3 scripts/build.py
 ```
 
-This writes the self-contained `index.html` and a `BUILD.json` report containing counts and input/output hashes, and makes no network requests. The proposed roadmaps' READMEs are too large to keep in the repository, so first fetch them (Python 3.11 or later, with an authenticated `gh`): `python3 scripts/tauceti_prs.py --fetch`; the build stops rather than drop them when they are missing. `--tauceti` builds the Tau Ceti atlas, and `--campaign` the campaign's own planned map with its blueprints, papers and links (`campaign/index.html`, not published since 21 October 2026). An alternate output location can be supplied with `--output`.
+This writes `index.html`, the `atlas-data/` folder beside it (emptied first) and a `BUILD.json` report containing counts and input/output hashes, and makes no network requests. `--self-contained` writes the parts into the page instead of the folder, as the offline download does. The proposed roadmaps' READMEs are too large to keep in the repository, so first fetch them (Python 3.11 or later, with an authenticated `gh`): `python3 scripts/tauceti_prs.py --fetch`; the build stops rather than drop them when they are missing. `--tauceti` builds the Tau Ceti atlas, and `--campaign` the campaign's own planned map with its blueprints, papers and links (`campaign/index.html`, not published since 21 October 2026). An alternate output location can be supplied with `--output`.
 
 The builder packages the checked-in snapshot. To update the published mathematics or imported reports, update the corresponding documents and data, retain their provenance, and rebuild. Rebuilding does not fetch upstream changes or import anyone's browser-local progress.
 
@@ -128,8 +134,10 @@ The builder packages the checked-in snapshot. To update the published mathematic
 - `src/references.js`: extracts cited reading with its topic, layer or roadmap scope.
 - `src/landmarks.js`: source-faithful extraction of key definitions, results and constructions.
 - `content/`: sanitized source Markdown documents.
+- `scripts/lazy_data.py`, `src/lazy.js`: the split of the page's data into a core and the parts read on demand, and the page's reader of them.
+- `scripts/derive.js`: what the page draws and cites from the READMEs, made at build time by the page's code.
 - `scripts/build.py`: portable offline builder. `scripts/galaxies.py` regroups roadmaps into the subject galaxies at build time.
-- `index.html`: generated entry point for offline use and GitHub Pages.
+- `index.html`, `atlas-data/`: the generated page and the folder of parts it reads, for GitHub Pages.
 
 The GitHub Pages target is [cbirkbeck.github.io/tauceti-explorer](https://cbirkbeck.github.io/tauceti-explorer/).
 
@@ -141,7 +149,7 @@ The optional browser suite needs Python's `playwright` package and its Chromium 
 python3 tests/validate_browser.py
 ```
 
-It checks navigation, status persistence/import, mathematics rendering, companion links, filters, pins, mobile browsing and the independent offline download. Reports and screenshots are written to a temporary directory. To check the hosted site, pass its URL as the first argument.
+It checks navigation, status persistence/import, mathematics rendering, companion links, filters, pins, mobile browsing and the independent offline download. `python3 tests/validate_lazy_browser.py` checks that the map is drawn before any part is read, that each panel reads the part it needs, the links that stand in for the READMEs, the search, and that the offline download carries every part. Reports and screenshots are written to a temporary directory. To check the hosted site, pass its URL as the first argument.
 
 ## Licence and acknowledgements
 

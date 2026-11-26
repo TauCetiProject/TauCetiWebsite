@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Build the Tau Ceti Atlas into OUT/: the all-roadmaps page (index.html), the Tau Ceti-only page
-# (tauceti/index.html), its areas as the map groups them (tauceti/areas.json, which the Roadmaps page reads)
-# and the key-definitions listing (definitions.html).
+# (tauceti/index.html), each with the folder of text it reads on demand (atlas-data/), the Tau Ceti page's areas
+# as the map groups them (tauceti/areas.json, which the Roadmaps page reads) and the key-definitions listing
+# (definitions.html).
 #
 # The Atlas's code lives here, in atlas/. Its research data does not: data/ and the parts of
 # research/blueprint/ the build reads (about 530 MB) stay in cbirkbeck/tauceti-explorer, where the
@@ -9,7 +10,8 @@
 # over them (scripts find the data relative to themselves), refreshes the Tau Ceti progress and
 # open-PR snapshots the way the Atlas's scheduled job did, and builds.
 #
-# Usage: scripts/build_atlas.sh WORK OUT    (needs an authenticated gh for the open-PR listing)
+# Usage: scripts/build_atlas.sh WORK OUT    (needs an authenticated gh for the open-PR listing, and Node, with
+# which the build works out what the page draws from the roadmaps' READMEs: atlas/scripts/derive.js)
 set -euo pipefail
 
 WORK=${1:?usage: build_atlas.sh WORK OUT}
@@ -40,8 +42,12 @@ python3 scripts/tauceti_prs.py --fetch > /dev/null
 python3 scripts/build.py > /dev/null
 python3 scripts/build.py --tauceti > /dev/null
 
+# Each page reads its long text from the atlas-data/ folder beside it (atlas/scripts/lazy_data.py).
 mkdir -p "$OUT/tauceti"
 cp index.html definitions.html "$OUT/"
 cp tauceti/index.html tauceti/areas.json "$OUT/tauceti/"
+rm -rf "$OUT/atlas-data" "$OUT/tauceti/atlas-data"
+cp -R atlas-data "$OUT/atlas-data"
+cp -R tauceti/atlas-data "$OUT/tauceti/atlas-data"
 python3 "$HERE/scripts/atlas_nav.py" "$OUT"
 echo "built the atlas into $OUT"

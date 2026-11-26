@@ -181,6 +181,7 @@ body.has-selection .app-layout{grid-template-columns:236px minmax(320px,1fr) 380
 .primary:hover{background:#eacf98}
 .secondary{display:inline-flex;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:4px;color:var(--ink-soft);font-size:12px;background:var(--panel)}
 .secondary:hover{background:var(--hover);color:var(--ink);border-color:#3a4652}
+a.secondary{text-decoration:none}
 .button-row{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
 .pin-button{padding:5px 9px;border:1px solid var(--line);border-radius:4px;color:var(--muted);font-size:12px;margin-bottom:10px}
 .pin-button:hover{background:var(--hover);color:var(--ink)}
@@ -255,6 +256,7 @@ body.has-selection .app-layout{grid-template-columns:236px minmax(320px,1fr) 380
 .reference-text>:last-child{margin-bottom:6px}
 .reference-source{padding:4px 0;text-align:left;font-size:11px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
 .reference-source:hover{color:var(--ink)}
+a.reference-source{display:inline-block}
 .reference-works{margin:6px 0;padding-left:16px;font-size:12px;line-height:1.6;color:var(--ink-soft)}
 .reference-works li{margin:5px 0}
 .reference-works a{color:var(--ink);overflow-wrap:anywhere}

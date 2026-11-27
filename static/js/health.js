@@ -130,16 +130,22 @@ document.addEventListener("DOMContentLoaded", function () {
         ? name(MEASURES, state.measure) + ", " + span + " to " + ml.current.as_of.replace("T", " ").slice(0, 16) + " UTC: median " + TC.hours(now.median) +
           " (25th–75th percentile " + TC.hours(now.p25) + "–" + TC.hours(now.p75) + ") over " + TC.fmt(now.count) + " pull requests."
         : "No pull requests landed in " + span + " to " + ml.current.as_of.replace("T", " ").slice(0, 16) + " UTC.";
-      // A window the queue's data does not yet wholly cover is null; start the chart after those.
-      var lo = 0;
-      while (lo < sr.median.length && sr.median[lo] == null) lo++;
+      // A window the queue's data does not wholly cover is null: trim those from both ends (the
+      // chart joins across any left inside), and say so if nothing is left.
+      var lo = 0, hi = sr.median.length;
+      while (lo < hi && sr.median[lo] == null) lo++;
+      while (hi > lo && sr.median[hi - 1] == null) hi--;
+      if (lo === hi) {
+        TC.$("#latency").replaceChildren(TC.el("p", { class: "muted", text: "The queue's data does not yet cover a whole window of " + (state.window === "24h" ? "24 hours" : "7 days") + "." }));
+        return;
+      }
       TC.timeChart("#latency", {
-        dates: ml.dates.slice(lo), updated: updated, yFormat: function (v) { return TC.fmt(v) + "h"; }, tipFormat: TC.hours,
+        dates: ml.dates.slice(lo, hi), updated: updated, yFormat: function (v) { return TC.fmt(v) + "h"; }, tipFormat: TC.hours,
         label: name(MEASURES, state.measure) + ", pull requests landed in " + span + " ending each day, in hours",
         series: [
-          { name: "Median", values: sr.median.slice(lo), color: TC.SERIES[0] },
-          { name: "25th percentile", values: sr.p25.slice(lo), color: TC.SERIES[1], dash: "5 4" },
-          { name: "75th percentile", values: sr.p75.slice(lo), color: TC.SERIES[1], dash: "5 4" },
+          { name: "Median", values: sr.median.slice(lo, hi), color: TC.SERIES[0] },
+          { name: "25th percentile", values: sr.p25.slice(lo, hi), color: TC.SERIES[1], dash: "5 4" },
+          { name: "75th percentile", values: sr.p75.slice(lo, hi), color: TC.SERIES[1], dash: "5 4" },
         ],
       });
     }

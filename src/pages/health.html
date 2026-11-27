@@ -41,9 +41,9 @@
   </div>
   <div class="panel">
     <h3>Time to merge</h3>
-    <p class="sub" id="latency-sub">Pull requests the merge queue landed, on GitHub and the Forgejo mirror: median solid, 25th and 75th percentiles dashed, in hours. <em>Approval</em> is the queue admitting the pull request after an all-green review; a pull request admitted more than once counts its first admission, so opening to approval plus approval to land is its whole time from opening to land.</p>
+    <p class="sub" id="latency-sub">Pull requests the merge queue landed, on GitHub and the Forgejo mirror: the median, with the 25th and 75th percentiles, in hours. <em>Approval</em> is the queue admitting the pull request after an all-green review; a pull request admitted more than once counts its first admission, so for each pull request opening to approval plus approval to land is its whole time from opening to land (their medians need not add up).</p>
     <div id="latency-controls"></div>
-    <p class="small" id="latency-now"></p>
+    <p class="small" id="latency-now" aria-live="polite"></p>
     <div id="latency"><noscript><img src="{{root}}static/merge-latency.svg" alt="Median time from opening to merge for pull requests landed each day, with the 25th to 75th percentile band" style="width:100%"></noscript></div>
   </div>
 </div>

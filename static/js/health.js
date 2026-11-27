@@ -63,7 +63,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   TC.live("pr-stats.json").then(function (s) {
     // GitHub's open pull requests, and the Forgejo mirror's where pr-stats.json publishes them.
-    var hrs = s.queue.total_open_hours.concat(s.queue.forgejo_open_hours || []);
+    var forgejoAges = s.queue.forgejo_open_hours;
+    var hrs = s.queue.total_open_hours.concat(forgejoAges || []);
+    TC.$("#age-scope").textContent = forgejoAges ? "on GitHub and the Forgejo mirror" : "on GitHub only";
     var buckets = [["under a day", 0, 24], ["1–3 days", 24, 72], ["3–7 days", 72, 168], ["1–2 weeks", 168, 336], ["2–4 weeks", 336, 672], ["over 4 weeks", 672, Infinity]];
     TC.bars("#age", buckets.map(function (b, i) {
       var n = hrs.filter(function (h) { return h >= b[1] && h < b[2]; }).length;

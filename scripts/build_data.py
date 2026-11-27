@@ -451,7 +451,7 @@ def ci_current() -> dict:
     cur = m.get("current") or {}
     return {"fetched_at": now_iso(), "generated_at": m.get("generated_at"),
             "mode": m.get("mode"), "running": cur.get("running", {}),
-            "queued": cur.get("queued", {}), "github": m.get("github", {}),
+            "queued": cur.get("queued", {}), "as_of": cur.get("as_of"), "github": m.get("github", {}),
             # Content-addressed chart URLs; images need no CORS, so pages can show them directly.
             "assets": {name: "https://ci-data.taucetiproject.org" + a["url"]
                        for name, a in (m.get("assets") or {}).items() if a.get("url")}}

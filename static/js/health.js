@@ -17,11 +17,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   TC.live("pipeline-health.json").then(function (ph) {
     TC.$("#ph-meta").textContent = "Pipeline snapshot " + TC.ago(ph.generated_at) + " (" + ph.generated_at.replace("T", " ").slice(0, 16) + " UTC).";
-    TC.set("open", TC.fmt(ph.open_prs));
-    TC.set("opened", TC.fmt1(ph.opened_per_hour), vs(ph.opened_per_hour, ph.baseline_opened_per_hour));
-    TC.set("merged", TC.fmt1(ph.merged_per_hour), vs(ph.merged_per_hour, ph.baseline_merged_per_hour));
+    // From schema 6 the counts cover GitHub and the Forgejo mirror; `by_forge` splits them.
+    var forges = ph.by_forge || null;
+    function split(text, field) {
+      var by = forges ? "GitHub " + TC.fmt(forges.github[field]) + ", Forgejo " + TC.fmt(forges.forgejo[field]) : "GitHub only";
+      return [text, by].filter(Boolean).join(" · ");
+    }
+    TC.set("open", TC.fmt(ph.open_prs), split("", "open_prs"));
+    TC.set("opened", TC.fmt1(ph.opened_per_hour), split(vs(ph.opened_per_hour, ph.baseline_opened_per_hour), "opened_count"));
+    TC.set("merged", TC.fmt1(ph.merged_per_hour), split(vs(ph.merged_per_hour, ph.baseline_merged_per_hour), "merged_count"));
     var mr = ph.merge_readiness || {};
-    TC.set("ready", TC.fmt(mr.eligible_not_queued), TC.fmt(mr.verified_eligible) + " verified eligible · " + TC.fmt(mr.blocked) + " blocked");
+    TC.set("ready", TC.fmt(mr.eligible_not_queued), TC.fmt(mr.verified_eligible) + " verified eligible" +
+      (mr.eligible_queued != null ? ", " + TC.fmt(mr.eligible_queued) + " already queued" : "") + " · " + TC.fmt(mr.blocked) + " blocked · GitHub only");
 
     var diag = TC.$("#diagnosis");
     if (ph.anomalies && ph.anomalies.length) {
@@ -55,7 +62,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }).catch(function (e) { TC.fail("#stages", e); });
 
   TC.live("pr-stats.json").then(function (s) {
-    var hrs = s.queue.total_open_hours;
+    // GitHub's open pull requests, and the Forgejo mirror's where pr-stats.json publishes them.
+    var forgejoAges = s.queue.forgejo_open_hours;
+    var hrs = s.queue.total_open_hours.concat(forgejoAges || []);
+    TC.$("#age-scope").textContent = forgejoAges ? "on GitHub and the Forgejo mirror" : "on GitHub only";
     var buckets = [["under a day", 0, 24], ["1–3 days", 24, 72], ["3–7 days", 72, 168], ["1–2 weeks", 168, 336], ["2–4 weeks", 336, 672], ["over 4 weeks", 672, Infinity]];
     TC.bars("#age", buckets.map(function (b, i) {
       var n = hrs.filter(function (h) { return h >= b[1] && h < b[2]; }).length;
@@ -99,7 +109,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     var run = Object.values(c.running || {}).reduce(function (a, b) { return a + b; }, 0);
     var q = Object.values(c.queued || {}).reduce(function (a, b) { return a + b; }, 0);
-    TC.$("#ci-now").textContent = "When this site was last built (" + TC.ago(c.generated_at || c.fetched_at) + "), " + run + " CI " + (run === 1 ? "job was" : "jobs were") + " running (" + list(c.running) +
+    // `as_of` is how current the CI service's counts are; it can trail the manifest's `generated_at`.
+    TC.$("#ci-now").textContent = "In the CI service's counts at the last site build (as of " + TC.ago(c.as_of || c.generated_at || c.fetched_at) + "), " + run + " CI " + (run === 1 ? "job was" : "jobs were") + " running (" + list(c.running) +
       ") and " + q + (q === 1 ? " was" : " were") + " queued" + (q ? " (" + list(c.queued) + ")" : "") + ".";
     // The CI service's own chart URLs are newer than the copies static/ holds from the last build.
     TC.$$("[data-ci-asset]").forEach(function (img) {

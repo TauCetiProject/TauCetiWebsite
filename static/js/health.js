@@ -153,13 +153,21 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   TC.live("roadmap-completion.json").then(function (rc) {
+    // Observed rates over the last seven complete days: net layers added to the roadmaps, and net
+    // layer completion events (reopenings subtract). The lines-of-Lean model is not shown here.
     var L = rc.forecast.estimates.layers;
-    var stop = L.stop_authoring, cont = L.continue_authoring;
-    TC.set("runway", stop.state === "finite" ? TC.fmt(stop.days) : "—", TC.fmt(L.backlog) + " layers left at " + TC.fmt1(L.completion_units_per_day) + " a day");
-    var text = TC.fmt(L.backlog) + " roadmap layers are not yet recorded done. At the current pace of about " + TC.fmt1(L.completion_units_per_day) +
-      " layers a day, the agents would finish them in about " + (stop.state === "finite" ? TC.fmt(stop.days) + " days" : "an unknown time") + " if no new roadmap work were added. ";
-    if (cont.state === "finite") text += "With roadmaps still being written at the last week’s rate, it would take about " + TC.fmt(cont.days) + " days.";
-    else text += "But over the last week new layers were written at " + TC.fmt1(L.authoring_units_per_day) + " a day, faster than they were completed, so at current rates the backlog is growing rather than shrinking.";
+    var written = L.authoring_units_per_day, done = L.observed_completion_units_per_day;
+    var stop = L.observed_stop_authoring || {}, cont = L.observed_continue_authoring || {};
+    TC.set("runway", TC.fmt(written) + " vs " + TC.fmt1(done), "net, 7 days to " + TC.dayYear(rc.forecast.last_full_day) + "; " + TC.fmt(L.backlog) + " layers left");
+    var text = TC.fmt(L.backlog) + " roadmap layers are not yet recorded done. Over the seven days to " + TC.dayYear(rc.forecast.last_full_day) +
+      ", new layers were written at " + TC.fmt1(written) + " a day and layers were completed at " + TC.fmt1(done) + " a day (net of reopenings). ";
+    if (done == null) text += "The roadmap history does not yet cover a whole week, so there is no runway estimate.";
+    else {
+      text += "As a rough model, at that completion pace the agents would finish the current layers in about " +
+        (stop.state === "finite" ? TC.fmt(stop.days) + " days" : "an unknown time") + " if no new roadmap work were added. ";
+      if (cont.state === "finite") text += "With roadmaps still being written at the same rate, it would take about " + TC.fmt(cont.days) + " days.";
+      else text += "But authoring currently outpaces completion, so the backlog is growing rather than shrinking, and that estimate is not a forecast.";
+    }
     TC.$("#runway-text").textContent = text;
   }).catch(function (e) { TC.fail("#runway-text", e); TC.set("runway", "—"); });
 

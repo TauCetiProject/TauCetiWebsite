@@ -153,20 +153,34 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   TC.live("roadmap-completion.json").then(function (rc) {
-    // Observed rates over the last seven complete days: net layers added to the roadmaps, and net
-    // layer completion events (reopenings subtract). The lines-of-Lean model is not shown here.
+    // Observed rates over the last seven complete days: net layers added to the roadmaps (floored
+    // at zero), and net layer completion events (reopenings subtract). The lines-of-Lean model is
+    // not shown here.
     var L = rc.forecast.estimates.layers;
     var written = L.authoring_units_per_day, done = L.observed_completion_units_per_day;
     var stop = L.observed_stop_authoring || {}, cont = L.observed_continue_authoring || {};
-    TC.set("runway", TC.fmt(written) + " vs " + TC.fmt1(done), "net, 7 days to " + TC.dayYear(rc.forecast.last_full_day) + "; " + TC.fmt(L.backlog) + " layers left");
-    var text = TC.fmt(L.backlog) + " roadmap layers are not yet recorded done. Over the seven days to " + TC.dayYear(rc.forecast.last_full_day) +
-      ", new layers were written at " + TC.fmt1(written) + " a day and layers were completed at " + TC.fmt1(done) + " a day (net of reopenings). ";
-    if (done == null) text += "The roadmap history does not yet cover a whole week, so there is no runway estimate.";
-    else {
-      text += "As a rough model, at that completion pace the agents would finish the current layers in about " +
-        (stop.state === "finite" ? TC.fmt(stop.days) + " days" : "an unknown time") + " if no new roadmap work were added. ";
+    var day = TC.dayYear(rc.forecast.last_full_day);
+    // One format for both rates, monotone in the value, so the tile cannot reverse their order.
+    function rate(n) { return n >= 100 ? TC.fmt(n) : TC.fmt1(n); }
+    var text = TC.fmt(L.backlog) + " roadmap " + (L.backlog === 1 ? "layer is" : "layers are") + " not yet recorded done. ";
+    if (done === undefined || done === null) {
+      var why = done === undefined ? "this data snapshot predates the observed rates" : "the roadmap history does not yet cover a whole week";
+      TC.set("runway", "—", why);
+      TC.$("#runway-text").textContent = text + "There are no observed rates or runway estimate yet: " + why + ".";
+      return;
+    }
+    TC.set("runway", rate(written) + " vs " + rate(done), "7 days to " + day + "; " + TC.fmt(L.backlog) + " layers left");
+    text += "Over the seven days to " + day + ", new layers were written at " + rate(written) + " a day and layers were completed at " +
+      rate(done) + " a day, net of reopenings. ";
+    if (stop.state === "exhausted") text += "No layers are waiting to be done.";
+    else if (stop.state === "finite") {
+      text += "As a rough model, at that completion pace the agents would finish the current layers in about " + TC.fmt(stop.days) +
+        " days if no new roadmap work were added. ";
       if (cont.state === "finite") text += "With roadmaps still being written at the same rate, it would take about " + TC.fmt(cont.days) + " days.";
-      else text += "But authoring currently outpaces completion, so the backlog is growing rather than shrinking, and that estimate is not a forecast.";
+      else if (written > done) text += "But authoring currently outpaces completion, so the backlog is growing and that estimate is not a forecast.";
+      else text += "But authoring keeps pace with completion, so at these rates the backlog would not shrink.";
+    } else {
+      text += "With no net completions, the rough model gives no estimate" + (written > 0 ? ", and the backlog is growing." : ".");
     }
     TC.$("#runway-text").textContent = text;
   }).catch(function (e) { TC.fail("#runway-text", e); TC.set("runway", "—"); });

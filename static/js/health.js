@@ -82,14 +82,75 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var r = s.rolling_seven_day, dates = r.map(function (x) { return x.date; });
     TC.timeChart("#merges7", { dates: dates, updated: s.snapshot, label: "Merges in trailing seven days", series: [{ name: "Merges, trailing 7 days", values: r.map(function (x) { return x.merges; }), color: TC.SERIES[2] }] });
-    TC.timeChart("#latency", {
-      dates: dates, updated: s.snapshot, label: "Hours from opening to merge", yFormat: function (v) { return TC.fmt(v) + "h"; }, tipFormat: TC.hours,
-      series: [
-        { name: "Median", values: r.map(function (x) { return x.median_merge_hours; }), color: TC.SERIES[0] },
-        { name: "90th percentile", values: r.map(function (x) { return x.p90_merge_hours; }), color: TC.SERIES[1], dash: "5 4" },
-      ],
-    });
+    if (s.merge_latency) {
+      latencyChart(s.merge_latency, s.snapshot);
+    } else {
+      // A pr-stats.json from before `merge_latency`: the trailing seven-day series alone.
+      TC.$("#latency-sub").textContent = "Median and 90th percentile over pull requests merged in the trailing seven days, " +
+        "from opening to merge, in hours. A point lags a change in the queue by up to a week.";
+      TC.timeChart("#latency", {
+        dates: dates, updated: s.snapshot, label: "Hours from opening to merge", yFormat: function (v) { return TC.fmt(v) + "h"; }, tipFormat: TC.hours,
+        series: [
+          { name: "Median", values: r.map(function (x) { return x.median_merge_hours; }), color: TC.SERIES[0] },
+          { name: "90th percentile", values: r.map(function (x) { return x.p90_merge_hours; }), color: TC.SERIES[1], dash: "5 4" },
+        ],
+      });
+    }
   }).catch(function (e) { TC.fail("#age", e); TC.fail("#cycles", e); TC.fail("#merges7", e); TC.fail("#latency", e); });
+
+  // Time to merge, by window and measure, from pr-stats.json's `merge_latency` (the queue's landings
+  // joined with the forges' opening times). Each daily point covers the window ending that UTC day.
+  var WINDOWS = [["24h", "24 hours"], ["7d", "7 days"]];
+  var MEASURES = [["open_to_land", "Opening to land"], ["open_to_approval", "Opening to approval"], ["approval_to_land", "Approval to land"]];
+  function latencyChart(ml, updated) {
+    var state = { window: "24h", measure: "open_to_land" };
+    var controls = TC.$("#latency-controls");
+    function group(label, options, key) {
+      var g = TC.el("div", { class: "range", role: "group", "aria-label": label, style: "justify-content:flex-start;flex-wrap:wrap;margin:0.2rem 0" });
+      g.append(TC.el("span", { class: "small muted", style: "margin-right:0.3rem", text: label + ":" }));
+      options.forEach(function (o) {
+        var b = TC.el("button", { type: "button", "aria-pressed": String(state[key] === o[0]), text: o[1] });
+        b.addEventListener("click", function () {
+          state[key] = o[0];
+          TC.$$("button", g).forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+          draw();
+        });
+        g.append(b);
+      });
+      return g;
+    }
+    controls.replaceChildren(group("Window", WINDOWS, "window"), group("Measure", MEASURES, "measure"));
+    function name(list, key) { return list.filter(function (o) { return o[0] === key; })[0][1]; }
+    function draw() {
+      var sr = ml.series[state.window][state.measure];
+      var whole = ml.current && ml.current[state.window], now = whole && whole[state.measure];
+      var span = state.window === "24h" ? "the 24 hours" : "the 7 days";
+      TC.$("#latency-now").textContent = !whole ? "The queue's data does not yet cover " + span + " to the snapshot."
+        : now.count
+        ? name(MEASURES, state.measure) + ", " + span + " to " + ml.current.as_of.replace("T", " ").slice(0, 16) + " UTC: median " + TC.hours(now.median) +
+          " (25th–75th percentile " + TC.hours(now.p25) + "–" + TC.hours(now.p75) + ") over " + TC.fmt(now.count) + " pull requests."
+        : "No pull requests landed in " + span + " to " + ml.current.as_of.replace("T", " ").slice(0, 16) + " UTC.";
+      // A window the queue's data does not wholly cover is null: trim those from both ends (the
+      // chart joins across any left inside), and say so if nothing is left.
+      var lo = 0, hi = sr.median.length;
+      while (lo < hi && sr.median[lo] == null) lo++;
+      while (hi > lo && sr.median[hi - 1] == null) hi--;
+      if (lo === hi) {
+        TC.$("#latency").replaceChildren(TC.el("p", { class: "muted", text: "The queue's data does not yet cover a whole window of " + (state.window === "24h" ? "24 hours" : "7 days") + "." }));
+        return;
+      }
+      TC.timeChart("#latency", {
+        dates: ml.dates.slice(lo, hi), updated: updated, yFormat: function (v) { return TC.fmt(v) + "h"; }, tipFormat: TC.hours,
+        label: name(MEASURES, state.measure) + ", pull requests landed in " + span + " ending each day, in hours",
+        series: [
+          { name: "Median", values: sr.median.slice(lo, hi), color: TC.SERIES[0] },
+          { name: "25th percentile", values: sr.p25.slice(lo, hi), color: TC.SERIES[1], dash: "5 4" },
+          { name: "75th percentile", values: sr.p75.slice(lo, hi), color: TC.SERIES[1], dash: "5 4" },
+        ],
+      });
+    }
+    draw();
+  }
 
   TC.live("roadmap-completion.json").then(function (rc) {
     var L = rc.forecast.estimates.layers;
